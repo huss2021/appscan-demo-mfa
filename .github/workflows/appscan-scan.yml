@@ -1,0 +1,205 @@
+name: AppScan ASoC DAST Scan
+
+on:
+  # Trigger on deployment
+  deployment:
+  
+  # Or schedule for nightly scans
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  
+  # Or manual trigger
+  workflow_dispatch:
+
+jobs:
+  dast-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install AppScan CLI
+        run: |
+          pip install appscan-cli
+      
+      - name: Login to AppScan ASoC
+        env:
+          ASOC_URL: ${{ secrets.ASOC_URL }}
+          ASOC_API_KEY_ID: ${{ secrets.ASOC_API_KEY_ID }}
+          ASOC_API_KEY_SECRET: ${{ secrets.ASOC_API_KEY_SECRET }}
+        run: |
+          appscan auth --url=$ASOC_URL --api-key-id=$ASOC_API_KEY_ID --api-key-secret=$ASOC_API_KEY_SECRET
+      
+      # Option 1: Session Replay (pre-recorded authenticated session)
+      - name: Run DAST Scan with Session Replay
+        env:
+          APP_ID: ${{ secrets.ASOC_APP_ID }}
+          TARGET_URL: ${{ secrets.TARGET_URL }}
+        run: |
+          appscan scan create \
+            --app-id=$APP_ID \
+            --scan-type=DynamicScan \
+            --name="GitHub Actions - Session Replay Scan" \
+            --target=$TARGET_URL \
+            --credentials-file=session-config.json
+      
+      # Option 2: Macro-based Authentication (with TOTP)
+      # Uncomment below to use macro instead of session replay
+      #
+      # - name: Run DAST Scan with Macro Authentication
+      #   env:
+      #     APP_ID: ${{ secrets.ASOC_APP_ID }}
+      #     TARGET_URL: ${{ secrets.TARGET_URL }}
+      #   run: |
+      #     appscan scan create \
+      #       --app-id=$APP_ID \
+      #       --scan-type=DynamicScan \
+      #       --name="GitHub Actions - Macro Auth Scan" \
+      #       --target=$TARGET_URL \
+      #       --login-username=${{ secrets.TEST_USERNAME }} \
+      #       --login-password=${{ secrets.TEST_PASSWORD }} \
+      #       --totp-secret=${{ secrets.TEST_TOTP_SECRET }}
+      
+      # Option 3: API Token Authentication
+      # Uncomment below to use API token instead
+      #
+      # - name: Run API Scan with Bearer Token
+      #   env:
+      #     APP_ID: ${{ secrets.ASOC_APP_ID }}
+      #     TARGET_URL: ${{ secrets.TARGET_URL }}
+      #   run: |
+      #     appscan scan create \
+      #       --app-id=$APP_ID \
+      #       --scan-type=DynamicScan \
+      #       --name="GitHub Actions - API Token Scan" \
+      #       --target=$TARGET_URL/api/v1 \
+      #       --authorization-header="Bearer ${{ secrets.TEST_API_KEY }}"
+      
+      - name: Wait for scan to complete
+        run: |
+          appscan scan wait --scan-id=$(appscan scan list --limit=1 --format=json | jq -r '.[0].id')
+      
+      - name: Publish scan results
+        if: always()
+        run: |
+          appscan result publish --scan-id=$(appscan scan list --limit=1 --format=json | jq -r '.[0].id')
+      
+      - name: Download HTML report
+        if: always()
+        run: |
+          appscan result download \
+            --scan-id=$(appscan scan list --limit=1 --format=json | jq -r '.[0].id') \
+            --format=html \
+            --destination=scan-results.html
+      
+      - name: Upload scan results as artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: appscan-results
+          path: scan-results.html
+      
+      - name: Check for high-severity findings
+        run: |
+          appscan result info --scan-id=$(appscan scan list --limit=1 --format=json | jq -r '.[0].id') --format=json | jq '.severity'
+          # Fail if high-severity issues found (optional)
+          # FINDINGS=$(appscan result info --scan-id=... | jq '.high_severity_count')
+          # if [ $FINDINGS -gt 0 ]; then exit 1; fi
+
+---
+
+## GitHub Secrets Required
+
+To use this workflow, add these secrets to your GitHub repository:
+
+1. **ASOC_URL** - Your AppScan ASoC instance URL (e.g., `https://cloud.appscan.com`)
+2. **ASOC_API_KEY_ID** - Your ASoC API key ID
+3. **ASOC_API_KEY_SECRET** - Your ASoC API key secret
+4. **ASOC_APP_ID** - The application ID in AppScan ASoC
+5. **TARGET_URL** - The deployed app URL (e.g., `https://appscan-demo-mfa.vercel.app`)
+6. **TEST_USERNAME** - Test account email (e.g., `demo-user1@appscan.com`)
+7. **TEST_PASSWORD** - Test account password
+8. **TEST_TOTP_SECRET** - TOTP secret (e.g., `JBSWY3DPEBLW64TMMQ======`)
+9. **TEST_API_KEY** - API key from test account login
+
+---
+
+## Setup Instructions
+
+### Step 1: Create Secrets in GitHub
+
+1. Go to your repo → **Settings** → **Secrets and variables** → **Actions**
+2. Click **"New repository secret"**
+3. Add each secret above
+
+### Step 2: Choose Authentication Method
+
+The workflow supports three methods:
+
+#### Method A: Session Replay (Default)
+- AppScan records an authenticated session once
+- Session is replayed during scans
+- Best for: Scans within 30 minutes of login (session expiry)
+- **File needed:** `session-config.json` (configure in AppScan UI)
+
+#### Method B: Macro-based TOTP (Recommended for MFA)
+- Uncomment the macro section
+- AppScan logs in automatically with TOTP support
+- Sends username + password + auto-generates TOTP code
+- Best for: Scheduled scans with TOTP-protected accounts
+
+#### Method C: API Token (Best for APIs)
+- Uncomment the API token section
+- Scan REST API endpoints with Bearer token auth
+- Best for: API-specific scanning
+
+### Step 3: Run Workflow
+
+**Trigger manually:**
+```
+GitHub → Actions → "AppScan ASoC DAST Scan" → "Run workflow"
+```
+
+**Or wait for scheduled time (2 AM UTC daily)**
+
+---
+
+## Example: Using Test Account with TOTP
+
+If using Method B (Macro-based), the workflow will:
+
+1. Authenticate as `demo-user1@appscan.com`
+2. Auto-generate TOTP code from secret `JBSWY3DPEBLW64TMMQ======`
+3. Submit login with TOTP code
+4. Start DAST scan with authenticated session
+5. Report findings to ASoC dashboard
+
+**No human interaction required** ✓
+
+---
+
+## Troubleshooting
+
+**Scan fails with "Invalid credentials"**
+- Verify TEST_USERNAME, TEST_PASSWORD, and TEST_TOTP_SECRET are correct
+
+**Scan times out**
+- Increase wait time in "Wait for scan to complete" step
+
+**No findings reported**
+- Check if target URL is accessible
+- Verify scan started with `appscan scan list`
+
+---
+
+## References
+
+- [AppScan ASoC CLI Documentation](https://www.hcltechsw.com/products/appscan)
+- [GitHub Actions Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
+- [TOTP/HOTP Standards (RFC 6238)](https://tools.ietf.org/html/rfc6238)

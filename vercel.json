@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm install",
+  "installCommand": "npm install",
+  "devCommand": "node server.js",
+  "framework": null,
+  "outputDirectory": null,
+  "env": [
+    "SUPABASE_URL",
+    "SUPABASE_KEY",
+    "SESSION_SECRET",
+    "NODE_ENV"
+  ]
+}
