@@ -151,28 +151,6 @@
       color: #c7254e;
     }
 
-    .test-accounts-info {
-      background: #f0f8ff;
-      border: 1px solid #d0e8f2;
-      padding: 16px;
-      border-radius: 4px;
-      margin-top: 24px;
-      font-size: 13px;
-    }
-
-    .test-accounts-info ul {
-      list-style: none;
-      margin: 12px 0;
-    }
-
-    .test-accounts-info li {
-      background: white;
-      padding: 12px;
-      border-radius: 3px;
-      margin-bottom: 8px;
-      border-left: 3px solid #3498db;
-    }
-
     .message {
       background: #e7f3ff;
       border: 1px solid #b3d9ff;
@@ -183,22 +161,54 @@
       font-size: 14px;
     }
 
+    .message.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+
     .hidden {
       display: none;
+    }
+
+    .step-indicator {
+      background: #f0f8ff;
+      border: 1px solid #d0e8f2;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #004085;
     }
 
     img {
       max-width: 300px;
       margin: 20px 0;
     }
+
+    .dashboard-section {
+      margin-bottom: 20px;
+    }
+
+    .dashboard-section p {
+      margin: 8px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .dashboard-section strong {
+      color: #2c3e50;
+      min-width: 120px;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
   <div class="app">
     <header class="app-header">
-      <h1>AppScan Demo — MFA/2FA Authentication</h1>
-      <p>Financial app with DAST vulnerabilities</p>
-    </header>
+	 <h1>Simple Bank for Learning Security</h1>
+	 <p>Financial app with DAST vulnerabilities</p>    
+	</header>
 
     <div id="userBar" class="user-bar hidden">
       <span>Logged in as: <span id="userEmail"></span></span>
@@ -209,35 +219,33 @@
       <!-- LOGIN VIEW -->
       <div id="loginView" class="card">
         <h2>Login</h2>
-        <form onsubmit="handleLogin(event)">
-          <input type="email" id="loginEmail" placeholder="Email" required />
-          <input type="password" id="loginPassword" placeholder="Password" required />
-          <input type="text" id="loginTOTP" placeholder="6-digit TOTP code" maxlength="6" required />
-          <button type="submit">Login</button>
-        </form>
-        <p>
-          <button class="link-btn" onclick="showRegister()">Create account</button>
-        </p>
+        <div id="loginMessage" class="message hidden"></div>
+        
+        <!-- Step 1: Password -->
+        <div id="passwordStep">
+          <div class="step-indicator">Step 1: Enter your email and password</div>
+          <form onsubmit="handlePasswordSubmit(event)">
+            <input type="email" id="loginEmail" placeholder="Email" required />
+            <input type="password" id="loginPassword" placeholder="Password" required />
+            <button type="submit">Next</button>
+          </form>
+        </div>
 
-        <div class="test-accounts-info">
-          <h4>Test Accounts for DAST Scanning:</h4>
-          <p>Use these credentials for AppScan ASoC demo:</p>
-          <ul>
-            <li>
-              <strong>demo-user1@appscan.com</strong> / Password: <code>DemoPassword123!</code>
-              <br />
-              TOTP Secret: <code>JBSWY3DPEBLW64TMMQ======</code>
-            </li>
-            <li>
-              <strong>demo-user2@appscan.com</strong> / Password: <code>DemoPassword123!</code>
-              <br />
-              TOTP Secret: <code>KVKFKRCPNZQUYMLXOBZWKY3UPEA======</code>
-            </li>
-          </ul>
-          <p style="color: #666; font-style: italic; margin-top: 12px;">
-            Use these accounts for AppScan ASoC demo and DAST scanning.
+        <!-- Step 2: TOTP -->
+        <div id="totpStep" class="hidden">
+          <div class="step-indicator">Step 2: Enter your 6-digit TOTP code from your authenticator app</div>
+          <form onsubmit="handleTOTPSubmit(event)">
+            <input type="text" id="loginTOTP" placeholder="6-digit TOTP code" maxlength="6" required />
+            <button type="submit">Login</button>
+          </form>
+          <p>
+            <button class="link-btn" onclick="resetLogin()">Back</button>
           </p>
         </div>
+
+        <p style="margin-top: 20px;">
+          <button class="link-btn" onclick="showRegister()">Create account</button>
+        </p>
       </div>
 
       <!-- REGISTER VIEW -->
@@ -279,8 +287,12 @@
       <div id="dashboardView" class="card hidden">
         <h2>Account Dashboard</h2>
         <div id="accountInfo">
-          <p><strong>User:</strong> <span id="dashEmail"></span></p>
-          <p>Welcome! Your account is authenticated and ready.</p>
+          <div class="dashboard-section">
+            <p><strong>User:</strong> <span id="dashEmail"></span></p>
+          </div>
+          <div class="dashboard-section">
+            <p>Welcome! Your account is authenticated and ready to use.</p>
+          </div>
         </div>
       </div>
 
@@ -290,11 +302,31 @@
   </div>
 
   <script>
+    // State management
+    let currentEmail = null;
+    let currentPassword = null;
+
     // Helper to show messages
-    function showMessage(msg) {
+    function showMessage(msg, isError = false) {
       const msgEl = document.getElementById('message');
       msgEl.textContent = msg;
       msgEl.classList.remove('hidden');
+      if (isError) {
+        msgEl.classList.add('error');
+      } else {
+        msgEl.classList.remove('error');
+      }
+    }
+
+    function showLoginMessage(msg, isError = false) {
+      const msgEl = document.getElementById('loginMessage');
+      msgEl.textContent = msg;
+      msgEl.classList.remove('hidden');
+      if (isError) {
+        msgEl.classList.add('error');
+      } else {
+        msgEl.classList.remove('error');
+      }
     }
 
     // Show/hide views
@@ -303,6 +335,7 @@
       document.getElementById('registerView').classList.add('hidden');
       document.getElementById('enrollTOTPView').classList.add('hidden');
       document.getElementById('dashboardView').classList.add('hidden');
+      resetLogin();
     }
 
     function showRegister() {
@@ -330,28 +363,79 @@
       localStorage.setItem('apiKey', apiKey);
     }
 
-    // Login
-    async function handleLogin(event) {
+    // Reset login form
+    function resetLogin() {
+      currentEmail = null;
+      currentPassword = null;
+      document.getElementById('passwordStep').classList.remove('hidden');
+      document.getElementById('totpStep').classList.add('hidden');
+      document.getElementById('loginMessage').classList.add('hidden');
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginTOTP').value = '';
+    }
+
+    // Step 1: Password validation
+    async function handlePasswordSubmit(event) {
       event.preventDefault();
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
+
+      // Store for step 2
+      currentEmail = email;
+      currentPassword = password;
+
+      // Try login without TOTP first to check if TOTP is required
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          // No TOTP needed - direct login
+          showMessage('Login successful!');
+          showDashboard(data.user.email, data.apiKey);
+        } else if (data.error && data.error.includes('TOTP')) {
+          // TOTP required - show step 2
+          document.getElementById('passwordStep').classList.add('hidden');
+          document.getElementById('totpStep').classList.remove('hidden');
+          document.getElementById('loginTOTP').focus();
+        } else {
+          showLoginMessage(data.error, true);
+        }
+      } catch (err) {
+        showLoginMessage(err.message, true);
+      }
+    }
+
+    // Step 2: TOTP validation
+    async function handleTOTPSubmit(event) {
+      event.preventDefault();
       const totp_code = document.getElementById('loginTOTP').value;
 
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, totp_code })
+          body: JSON.stringify({
+            email: currentEmail,
+            password: currentPassword,
+            totp_code
+          })
         });
         const data = await res.json();
+
         if (res.ok) {
           showMessage('Login successful!');
           showDashboard(data.user.email, data.apiKey);
         } else {
-          showMessage(data.error);
+          showLoginMessage(data.error, true);
         }
       } catch (err) {
-        showMessage(err.message);
+        showLoginMessage(err.message, true);
       }
     }
 
@@ -373,10 +457,10 @@
           showMessage('Registered! Now set up TOTP.');
           showEnrollTOTP();
         } else {
-          showMessage(data.error);
+          showMessage(data.error, true);
         }
       } catch (err) {
-        showMessage(err.message);
+        showMessage(err.message, true);
       }
     }
 
@@ -400,10 +484,10 @@
           document.getElementById('secretCode').textContent = data.secret;
           showMessage('Scan the QR code with Microsoft Authenticator');
         } else {
-          showMessage(data.error);
+          showMessage(data.error, true);
         }
       } catch (err) {
-        showMessage(err.message);
+        showMessage(err.message, true);
       }
     }
 
@@ -423,10 +507,10 @@
           showMessage('TOTP enabled! Now log in.');
           setTimeout(showLogin, 1500);
         } else {
-          showMessage(data.error);
+          showMessage(data.error, true);
         }
       } catch (err) {
-        showMessage(err.message);
+        showMessage(err.message, true);
       }
     }
 
