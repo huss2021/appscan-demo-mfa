@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Bank for Learning Security</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    .app-header {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      color: white;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .app-header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .app-header p {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .header-content {
+      flex: 1;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-info span {
+      font-size: 13px;
+    }
+
+    .logout-btn {
+      padding: 8px 16px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .logout-btn:hover {
+      background: #c0392b;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #2c3e50;
+      color: white;
+      padding: 20px 0;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      border-left: 4px solid transparent;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .nav-item:hover {
+      background: #34495e;
+      border-left-color: #3498db;
+    }
+
+    .nav-item.active {
+      background: #34495e;
+      border-left-color: #3498db;
+      color: #3498db;
+      font-weight: 600;
+    }
+
+    .content {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid #e8e8e8;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #555;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      padding: 10px 16px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .message {
+      background: #e7f3ff;
+      border: 1px solid #b3d9ff;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      color: #004085;
+      font-size: 14px;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+
+    .message.success {
+      background: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .info-box {
+      background: #f0f8ff;
+      border: 1px solid #d0e8f2;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .account-details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .detail-item {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 4px;
+      border-left: 3px solid #3498db;
+    }
+
+    .detail-item strong {
+      display: block;
+      color: #2c3e50;
+      margin-bottom: 6px;
+    }
+
+    .detail-item span {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .transaction-list {
+      margin-top: 15px;
+    }
+
+    .transaction-item {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      border-left: 3px solid #3498db;
+      font-size: 13px;
+    }
+
+    .comment-item {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      border-left: 3px solid #3498db;
+    }
+
+    .comment-item strong {
+      display: block;
+      color: #2c3e50;
+      margin-bottom: 6px;
+    }
+
+    .comment-content {
+      font-size: 13px;
+      color: #333;
+      word-break: break-word;
+    }
+
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      color: #c7254e;
+    }
+
+    .api-endpoint {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-x: auto;
+    }
+
+    .login-view .card {
+      max-width: 400px;
+      margin: 50px auto;
+    }
+
+    .step-indicator {
+      background: #f0f8ff;
+      border: 1px solid #d0e8f2;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #004085;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-content">
+        <h1>Simple Bank for Learning Security</h1>
+        <p>Financial app with DAST vulnerabilities</p>
+      </div>
+      <div id="authHeader" class="user-info hidden">
+        <span>Logged in as: <strong id="headerEmail"></strong></span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <!-- LOGIN VIEW -->
+    <div id="loginView" class="login-view" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+      <div class="card" style="width: 100%; max-width: 400px;">
+        <h2>Login</h2>
+        <div id="loginMessage" class="message hidden"></div>
+        
+        <!-- Step 1: Password -->
+        <div id="passwordStep">
+          <div class="step-indicator">Step 1: Enter your email and password</div>
+          <form onsubmit="handlePasswordSubmit(event)">
+            <div class="form-group">
+              <input type="email" id="loginEmail" placeholder="Email" required />
+            </div>
+            <div class="form-group">
+              <input type="password" id="loginPassword" placeholder="Password" required />
+            </div>
+            <button type="submit" style="width: 100%;">Next</button>
+          </form>
+        </div>
+
+        <!-- Step 2: TOTP -->
+        <div id="totpStep" class="hidden">
+          <div class="step-indicator">Step 2: Enter your 6-digit TOTP code</div>
+          <form onsubmit="handleTOTPSubmit(event)">
+            <div class="form-group">
+              <input type="text" id="loginTOTP" placeholder="6-digit TOTP code" maxlength="6" required />
+            </div>
+            <button type="submit" style="width: 100%;">Login</button>
+          </form>
+          <p style="margin-top: 15px; text-align: center;">
+            <button style="background: none; color: #3498db; border: none; cursor: pointer; text-decoration: underline; padding: 0;" onclick="resetLogin()">Back</button>
+          </p>
+        </div>
+
+        <p style="margin-top: 20px; text-align: center; font-size: 13px;">
+          <button style="background: none; color: #3498db; border: none; cursor: pointer; text-decoration: underline; padding: 0;" onclick="showRegister()">Create account</button>
+        </p>
+      </div>
+    </div>
+
+    <!-- REGISTER VIEW -->
+    <div id="registerView" class="login-view hidden" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+      <div class="card" style="width: 100%; max-width: 400px;">
+        <h2>Create Account</h2>
+        <form onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <input type="text" id="registerName" placeholder="Full Name" />
+          </div>
+          <div class="form-group">
+            <input type="email" id="registerEmail" placeholder="Email" required />
+          </div>
+          <div class="form-group">
+            <input type="password" id="registerPassword" placeholder="Password" required />
+          </div>
+          <button type="submit" style="width: 100%;">Register</button>
+        </form>
+        <p style="margin-top: 15px; text-align: center;">
+          <button style="background: none; color: #3498db; border: none; cursor: pointer; text-decoration: underline; padding: 0;" onclick="showLogin()">Back to login</button>
+        </p>
+      </div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboardView" class="hidden" style="flex: 1; display: flex;">
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <div class="nav-item active" onclick="showPage('account')">💰 Account</div>
+        <div class="nav-item" onclick="showPage('transfer')">📤 Transfer Funds</div>
+        <div class="nav-item" onclick="showPage('transactions')">📊 Transactions</div>
+        <div class="nav-item" onclick="showPage('search')">🔍 Search Users</div>
+        <div class="nav-item" onclick="showPage('comments')">💬 Comments</div>
+        <div class="nav-item" onclick="showPage('api')">🔌 API Info</div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="content">
+        <div id="message" class="message hidden"></div>
+
+        <!-- ACCOUNT PAGE -->
+        <div id="accountPage" class="card">
+          <h2>Account Overview</h2>
+          <div id="accountInfo"></div>
+        </div>
+
+        <!-- TRANSFER PAGE -->
+        <div id="transferPage" class="card hidden">
+          <h2>Transfer Funds</h2>
+          <p style="font-size: 13px; margin-bottom: 15px; color: #666;">Transfer money to another account</p>
+          <form onsubmit="handleTransfer(event)">
+            <div class="form-group">
+              <label>Recipient Account ID</label>
+              <input type="text" id="transferToAccount" placeholder="Enter recipient account ID" required />
+            </div>
+            <div class="form-group">
+              <label>Amount ($)</label>
+              <input type="number" id="transferAmount" placeholder="0.00" step="0.01" required />
+            </div>
+            <button type="submit">Send Transfer</button>
+          </form>
+        </div>
+
+        <!-- TRANSACTIONS PAGE -->
+        <div id="transactionsPage" class="card hidden">
+          <h2>Transaction History</h2>
+          <div id="transactionsList"></div>
+        </div>
+
+        <!-- SEARCH PAGE -->
+        <div id="searchPage" class="card hidden">
+          <h2>Search Users</h2>
+          <p style="font-size: 13px; margin-bottom: 15px; color: #666;">Search for other users in the system</p>
+          <form onsubmit="handleSearch(event)">
+            <div class="form-group">
+              <label>Search Query</label>
+              <input type="text" id="searchQuery" placeholder="Enter name or email" required />
+            </div>
+            <button type="submit">Search</button>
+          </form>
+          <div id="searchResults" style="margin-top: 20px;"></div>
+        </div>
+
+        <!-- COMMENTS PAGE -->
+        <div id="commentsPage" class="card hidden">
+          <h2>Community Comments</h2>
+          <h3>Post a Comment</h3>
+          <form onsubmit="handlePostComment(event)">
+            <div class="form-group">
+              <textarea id="commentText" placeholder="Share your thoughts..." required></textarea>
+            </div>
+            <button type="submit">Post Comment</button>
+          </form>
+          <h3>Recent Comments</h3>
+          <div id="commentsList" style="margin-top: 15px;"></div>
+        </div>
+
+        <!-- API PAGE -->
+        <div id="apiPage" class="card hidden">
+          <h2>API Integration</h2>
+          <div class="info-box">
+            <strong>API Key for Bearer Token Auth:</strong>
+            <div style="margin-top: 10px; font-family: monospace; word-break: break-all;">
+              <code id="apiKeyDisplay">Loading...</code>
+            </div>
+            <p style="margin-top: 10px; font-size: 12px;">Use this API key in your Authorization header for API-level scanning:</p>
+            <div class="api-endpoint">Authorization: Bearer [your-api-key]</div>
+          </div>
+
+          <h3>Available API Endpoints</h3>
+          <div style="margin-top: 15px;">
+            <p style="font-size: 13px; margin-bottom: 10px;"><strong>Requires Bearer Token Authentication:</strong></p>
+            <div class="api-endpoint">GET /api/v1/accounts</div>
+            <div class="api-endpoint">GET /api/v1/transactions</div>
+            <div class="api-endpoint">GET /api/v1/transactions?user_id=[USER_ID]</div>
+          </div>
+
+          <h3>TOTP Test Endpoint</h3>
+          <p style="font-size: 13px; margin-bottom: 10px;">Get current TOTP code for scanning:</p>
+          <div class="api-endpoint">GET /api/test/totp/[TOTP_SECRET]</div>
+
+          <h3>Example for AppScan Macro</h3>
+          <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 12px;">
+Test Account:
+Email: demo-user1@appscan.com
+Password: DemoPassword123!
+TOTP Secret: JBSWY3DPEBLW64TMMQ======
+
+Endpoint to get current TOTP code:
+/api/test/totp/JBSWY3DPEBLW64TMMQ======
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let currentEmail = null;
+    let currentPassword = null;
+    let apiKey = null;
+
+    // Helper functions
+    function showMessage(msg, type = 'info') {
+      const msgEl = document.getElementById('message');
+      msgEl.textContent = msg;
+      msgEl.classList.remove('hidden', 'error', 'success');
+      if (type === 'error') msgEl.classList.add('error');
+      if (type === 'success') msgEl.classList.add('success');
+      msgEl.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function loginShowMessage(msg, isError = false) {
+      const msgEl = document.getElementById('loginMessage');
+      msgEl.textContent = msg;
+      msgEl.classList.remove('hidden');
+      if (isError) {
+        msgEl.classList.add('error');
+      } else {
+        msgEl.classList.remove('error');
+      }
+    }
+
+    function showPage(page) {
+      // Hide all pages
+      document.getElementById('accountPage').classList.add('hidden');
+      document.getElementById('transferPage').classList.add('hidden');
+      document.getElementById('transactionsPage').classList.add('hidden');
+      document.getElementById('searchPage').classList.add('hidden');
+      document.getElementById('commentsPage').classList.add('hidden');
+      document.getElementById('apiPage').classList.add('hidden');
+
+      // Update nav items
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Show selected page
+      switch(page) {
+        case 'account':
+          loadAccount();
+          document.getElementById('accountPage').classList.remove('hidden');
+          break;
+        case 'transfer':
+          document.getElementById('transferPage').classList.remove('hidden');
+          break;
+        case 'transactions':
+          loadTransactions();
+          document.getElementById('transactionsPage').classList.remove('hidden');
+          break;
+        case 'search':
+          document.getElementById('searchPage').classList.remove('hidden');
+          break;
+        case 'comments':
+          loadComments();
+          document.getElementById('commentsPage').classList.remove('hidden');
+          break;
+        case 'api':
+          document.getElementById('apiPage').classList.remove('hidden');
+          document.getElementById('apiKeyDisplay').textContent = apiKey || 'Loading...';
+          break;
+      }
+    }
+
+    // Load account details
+    async function loadAccount() {
+      try {
+        const res = await fetch('/api/user/account');
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('accountInfo').innerHTML = `
+            <div class="account-details">
+              <div class="detail-item">
+                <strong>Account Type</strong>
+                <span>${data.account_type}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Account Number</strong>
+                <span>${data.account_number}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Balance</strong>
+                <span>$${parseFloat(data.balance).toFixed(2)}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Account ID</strong>
+                <span style="font-size: 11px; font-family: monospace;">${data.id}</span>
+              </div>
+            </div>
+          `;
+        } else {
+          showMessage('Failed to load account', 'error');
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Transfer funds
+    async function handleTransfer(event) {
+      event.preventDefault();
+      const toAccountId = document.getElementById('transferToAccount').value;
+      const amount = parseFloat(document.getElementById('transferAmount').value);
+
+      try {
+        const res = await fetch('/api/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toAccountId, amount })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage(`Transfer of $${amount} successful!`, 'success');
+          document.getElementById('transferAmount').value = '';
+          document.getElementById('transferToAccount').value = '';
+        } else {
+          showMessage(data.error, 'error');
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Load transactions
+    async function loadTransactions() {
+      try {
+        const res = await fetch('/api/v1/transactions');
+        const data = await res.json();
+        if (res.ok) {
+          const html = data.length > 0 ? data.map(t => `
+            <div class="transaction-item">
+              <strong>Transaction ID:</strong> ${t.id} <br/>
+              <strong>Amount:</strong> $${parseFloat(t.amount).toFixed(2)} <br/>
+              <strong>Status:</strong> ${t.status} <br/>
+              <strong>Date:</strong> ${new Date(t.created_at).toLocaleDateString()}
+            </div>
+          `).join('') : '<p style="font-size: 13px; color: #666;">No transactions yet</p>';
+          document.getElementById('transactionsList').innerHTML = html;
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Search users
+    async function handleSearch(event) {
+      event.preventDefault();
+      const q = document.getElementById('searchQuery').value;
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (res.ok) {
+          const html = data.length > 0 ? data.map(user => `
+            <div class="detail-item">
+              <strong>${user.email}</strong><br/>
+              <span>${user.full_name || 'No name'}</span>
+            </div>
+          `).join('') : '<p style="font-size: 13px; color: #666;">No results found</p>';
+          document.getElementById('searchResults').innerHTML = html;
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Load comments
+    async function loadComments() {
+      try {
+        const res = await fetch('/api/comments');
+        const data = await res.json();
+        if (res.ok) {
+          const html = data.length > 0 ? data.map(comment => `
+            <div class="comment-item">
+              <strong>User ID: ${comment.user_id}</strong>
+              <div class="comment-content">${comment.content}</div>
+              <small style="color: #999;">${new Date(comment.created_at).toLocaleString()}</small>
+            </div>
+          `).join('') : '<p style="font-size: 13px; color: #666;">No comments yet</p>';
+          document.getElementById('commentsList').innerHTML = html;
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Post comment
+    async function handlePostComment(event) {
+      event.preventDefault();
+      const comment = document.getElementById('commentText').value;
+
+      try {
+        const res = await fetch('/api/profile/comment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comment })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('Comment posted!', 'success');
+          document.getElementById('commentText').value = '';
+          loadComments();
+        } else {
+          showMessage(data.error, 'error');
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    // Auth functions
+    function showLogin() {
+      document.getElementById('loginView').classList.remove('hidden');
+      document.getElementById('registerView').classList.add('hidden');
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('authHeader').classList.add('hidden');
+      resetLogin();
+    }
+
+    function showRegister() {
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('registerView').classList.remove('hidden');
+    }
+
+    function resetLogin() {
+      currentEmail = null;
+      currentPassword = null;
+      document.getElementById('passwordStep').classList.remove('hidden');
+      document.getElementById('totpStep').classList.add('hidden');
+      document.getElementById('loginMessage').classList.add('hidden');
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginTOTP').value = '';
+    }
+
+    async function handlePasswordSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      currentEmail = email;
+      currentPassword = password;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          apiKey = data.apiKey;
+          showDashboard(data.user.email);
+        } else if (data.error && data.error.includes('TOTP')) {
+          document.getElementById('passwordStep').classList.add('hidden');
+          document.getElementById('totpStep').classList.remove('hidden');
+          document.getElementById('loginTOTP').focus();
+        } else {
+          loginShowMessage(data.error, true);
+        }
+      } catch (err) {
+        loginShowMessage(err.message, true);
+      }
+    }
+
+    async function handleTOTPSubmit(event) {
+      event.preventDefault();
+      const totp_code = document.getElementById('loginTOTP').value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: currentEmail,
+            password: currentPassword,
+            totp_code
+          })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          apiKey = data.apiKey;
+          showDashboard(data.user.email);
+        } else {
+          loginShowMessage(data.error, true);
+        }
+      } catch (err) {
+        loginShowMessage(err.message, true);
+      }
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+      const email = document.getElementById('registerEmail').value;
+      const password = document.getElementById('registerPassword').value;
+      const fullName = document.getElementById('registerName').value;
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, fullName })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('Registration coming soon - use test accounts for now', 'info');
+          showLogin();
+        }
+      } catch (err) {
+        showMessage(err.message, 'error');
+      }
+    }
+
+    function showDashboard(email) {
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('registerView').classList.add('hidden');
+      document.getElementById('dashboardView').classList.remove('hidden');
+      document.getElementById('authHeader').classList.remove('hidden');
+      document.getElementById('headerEmail').textContent = email;
+      loadAccount();
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout');
+      showLogin();
+    }
+
+    // Initialize
+    showLogin();
+  </script>
+</body>
+</html>
