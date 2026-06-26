@@ -47,12 +47,10 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userId = require('crypto').randomUUID();
 
-    const { data: userData, error: userError } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .insert({
-        id: userId,
         email,
         password: hashedPassword,
         full_name: fullName,
@@ -60,23 +58,8 @@ app.post('/api/auth/register', async (req, res) => {
       })
       .select();
 
-    if (userError) {
-      return res.status(400).json({ error: userError.message });
-    }
-
-    // Create account with $100 balance
-    const accountNumber = 'ACC' + Math.random().toString(36).substring(2, 11).toUpperCase();
-    const { error: accountError } = await supabase
-      .from('accounts')
-      .insert({
-        user_id: userId,
-        account_number: accountNumber,
-        account_type: 'Checking',
-        balance: 100.00
-      });
-
-    if (accountError) {
-      console.error('Account creation error:', accountError);
+    if (error) {
+      return res.status(400).json({ error: error.message });
     }
 
     res.json({ success: true, message: 'User registered. Please set up TOTP.' });
