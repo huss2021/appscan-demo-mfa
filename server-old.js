@@ -571,13 +571,8 @@ app.get('/api/test-accounts', (req, res) => {
   });
 });
 
-// Serve login page as default
+// Serve app
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/login.html');
-});
-
-// Serve app dashboard
-app.get('/app.html', (req, res) => {
   res.sendFile(__dirname + '/public/app.html');
 });
 
