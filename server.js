@@ -22,11 +22,16 @@ app.use(session({
   cookie: { secure: false, httpOnly: true, maxAge: 1800000 } // 30 min
 }));
 
-// Supabase
+// Supabase - Simple initialization without Realtime
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // ============================================
 // AUTH ROUTES
@@ -297,13 +302,10 @@ app.get('/api/search', requireAuth, async (req, res) => {
     }
 
     // VULNERABLE: Direct SQL injection
-    const query = `
-      SELECT id, email, full_name FROM users 
-      WHERE email LIKE '%${q}%' 
-      OR full_name LIKE '%${q}%'
-    `;
-
-    const { data, error } = await supabase.rpc('exec_raw_sql', { sql: query });
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, email, full_name')
+      .or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -321,7 +323,7 @@ app.get('/api/user/:userId/account', requireAuth, async (req, res) => {
   try {
     const targetUserId = req.params.userId;
 
-    // VULNERABLE: No authorization check - user can access any account
+    // VULNERABLE: No authorization check
     const { data: account, error } = await supabase
       .from('accounts')
       .select('*')
@@ -421,8 +423,6 @@ app.post('/api/transfer', requireAuth, async (req, res) => {
     }
 
     // VULNERABLE: No CSRF token check
-    // VULNERABLE: Could allow transfer from any user's account via IDOR
-
     const { data: account, error } = await supabase
       .from('accounts')
       .select('balance')
@@ -538,7 +538,6 @@ app.get('/api/v1/transactions', requireApiKey, async (req, res) => {
 // ============================================
 
 // GET /api/test/totp/:secret
-// Returns current TOTP code for a given secret (useful for AppScan macro)
 app.get('/api/test/totp/:secret', (req, res) => {
   try {
     const secret = req.params.secret;
@@ -553,10 +552,7 @@ app.get('/api/test/totp/:secret', (req, res) => {
   }
 });
 
-// ============================================
-// TEST ACCOUNTS (pre-created for DAST)
-// ============================================
-
+// GET /api/test-accounts
 app.get('/api/test-accounts', (req, res) => {
   res.json({
     accounts: [
@@ -575,14 +571,6 @@ app.get('/api/test-accounts', (req, res) => {
   });
 });
 
-// ============================================
-// HEALTH CHECK
-// ============================================
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
 // Serve app
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/app.html');
@@ -592,4 +580,5 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`AppScan Demo App running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
