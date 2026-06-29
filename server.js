@@ -143,16 +143,23 @@ app.post('/api/auth/register', async (req, res) => {
 
     await supabaseRest('POST', 'users', { insert: newUser });
 
-    // Create account with $100
-    const accountNumber = 'ACC' + Math.random().toString(36).substring(2, 11).toUpperCase();
-    await supabaseRest('POST', 'accounts', {
-      insert: {
-        user_id: userId,
-        account_number: accountNumber,
-        account_type: 'Checking',
-        balance: 100.00
-      }
-    });
+    // Create TWO accounts: Checking and Savings
+    const checkingAccount = {
+      user_id: userId,
+      account_number: 'CHK' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+      account_type: 'Checking',
+      balance: 100.00
+    };
+
+    const savingsAccount = {
+      user_id: userId,
+      account_number: 'SAV' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+      account_type: 'Savings',
+      balance: 100.00
+    };
+
+    await supabaseRest('POST', 'accounts', { insert: checkingAccount });
+    await supabaseRest('POST', 'accounts', { insert: savingsAccount });
 
     res.json({ success: true, message: 'User registered' });
   } catch (err) {
@@ -473,11 +480,21 @@ app.post('/api/admin/users/create', async (req, res) => {
       }
     });
 
+    // Create TWO accounts: Checking and Savings
     await supabaseRest('POST', 'accounts', {
       insert: {
         user_id: userId,
-        account_number: 'ACC' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+        account_number: 'CHK' + Math.random().toString(36).substring(2, 11).toUpperCase(),
         account_type: 'Checking',
+        balance: 100.00
+      }
+    });
+
+    await supabaseRest('POST', 'accounts', {
+      insert: {
+        user_id: userId,
+        account_number: 'SAV' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+        account_type: 'Savings',
         balance: 100.00
       }
     });
