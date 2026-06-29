@@ -340,9 +340,10 @@
         <!-- ACCOUNT PAGE -->
         <div id="account" class="page active">
           <div class="card">
-            <h2>Your Account</h2>
+            <h2>Your Accounts</h2>
+            
             <div class="card-section">
-              <div class="section-label">Account Information</div>
+              <div class="section-label">Checking Account</div>
               <div class="info-row">
                 <span class="info-label">Account Number</span>
                 <span class="info-value" id="accountNumber">-</span>
@@ -354,6 +355,18 @@
               <div class="info-row">
                 <span class="info-label">Balance</span>
                 <span class="info-value">$<span id="accountBalance">0.00</span></span>
+              </div>
+            </div>
+
+            <div class="card-section">
+              <div class="section-label">Savings Account</div>
+              <div class="info-row">
+                <span class="info-label">Account Type</span>
+                <span class="info-value">Savings</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Balance</span>
+                <span class="info-value">$<span id="savingsBalance">0.00</span></span>
               </div>
             </div>
           </div>
@@ -493,9 +506,19 @@
         const res = await fetch('/api/user/account');
         const data = await res.json();
         if (res.ok) {
-          document.getElementById('accountNumber').textContent = data.account_number;
-          document.getElementById('accountType').textContent = data.account_type;
-          document.getElementById('accountBalance').textContent = parseFloat(data.balance).toFixed(2);
+          // Get all accounts for this user
+          const checkingAccount = data.find(a => a.account_type === 'Checking') || data[0];
+          const savingsAccount = data.find(a => a.account_type === 'Savings') || data[1];
+          
+          document.getElementById('accountNumber').textContent = checkingAccount?.account_number || '-';
+          document.getElementById('accountType').textContent = checkingAccount?.account_type || '-';
+          document.getElementById('accountBalance').textContent = checkingAccount ? parseFloat(checkingAccount.balance).toFixed(2) : '0.00';
+          
+          // Add savings account display
+          const savingsDisplay = document.getElementById('savingsBalance');
+          if (savingsDisplay && savingsAccount) {
+            savingsDisplay.textContent = parseFloat(savingsAccount.balance).toFixed(2);
+          }
         }
       } catch (err) {
         showMessage(err.message, true);
@@ -716,20 +739,30 @@
         const data = await res.json();
         
         if (data.isReserved) {
-          showMessage('Account is already reserved for 24 hours');
-          return;
-        }
-
-        const res2 = await fetch('/api/user/reserve', { method: 'POST' });
-        const data2 = await res2.json();
-        if (res2.ok) {
-          const btn = document.getElementById('reserveBtn');
-          btn.textContent = 'In-use (24h) ⚠️';
-          btn.style.background = '#c0392b';
-          btn.disabled = true;
-          showMessage('Account reserved for 24 hours');
+          // UN-reserve
+          const res2 = await fetch('/api/user/un-reserve', { method: 'POST' });
+          const data2 = await res2.json();
+          if (res2.ok) {
+            const btn = document.getElementById('reserveBtn');
+            btn.textContent = 'Reserve';
+            btn.style.background = '#27ae60';
+            btn.disabled = false;
+            showMessage('Account un-reserved');
+          } else {
+            showMessage(data2.error, true);
+          }
         } else {
-          showMessage(data2.error, true);
+          // Reserve
+          const res2 = await fetch('/api/user/reserve', { method: 'POST' });
+          const data2 = await res2.json();
+          if (res2.ok) {
+            const btn = document.getElementById('reserveBtn');
+            btn.textContent = 'In-use (24h) ⚠️';
+            btn.style.background = '#c0392b';
+            showMessage('Account reserved for 24 hours');
+          } else {
+            showMessage(data2.error, true);
+          }
         }
       } catch (err) {
         showMessage(err.message, true);
@@ -756,7 +789,6 @@
           const btn = document.getElementById('reserveBtn');
           btn.textContent = 'In-use (24h) ⚠️';
           btn.style.background = '#c0392b';
-          btn.disabled = true;
         }
       } catch (err) {
         window.location.href = '/';
