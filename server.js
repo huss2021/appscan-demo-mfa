@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const crypto = require('crypto');
+const cron = require('node-cron');
 
 const app = express();
 
@@ -95,6 +96,20 @@ app.use((req, res, next) => {
   if (trafficLogs.length > 10000) trafficLogs = trafficLogs.slice(-10000);
   next();
 });
+
+// ============================================
+// NIGHTLY CLEANUP (Clear XSS comments at midnight PST)
+// ============================================
+cron.schedule('0 8 * * *', async () => {
+  try {
+    await supabaseRest('DELETE', 'comments', {});
+    console.log('[CLEANUP] ✓ XSS comments cleared at midnight PST');
+  } catch (err) {
+    console.error('[CLEANUP] Failed to clear comments:', err.message);
+  }
+});
+
+console.log('✓ Nightly cleanup scheduled for 00:00 PST (08:00 UTC)');
 
 // Health check
 app.get('/health', (req, res) => {
