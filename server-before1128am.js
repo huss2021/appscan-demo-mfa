@@ -515,33 +515,6 @@ app.delete('/api/admin/users/:userId', async (req, res) => {
   }
 });
 
-// POST /api/admin/reset - Reset app state
-app.post('/api/admin/reset', async (req, res) => {
-  try {
-    if (req.session.email !== ADMIN_EMAIL) {
-      return res.status(403).json({ error: 'Admin only' });
-    }
-
-    const { type } = req.body;
-
-    if (type === 'comments') {
-      await supabaseRest('DELETE', 'comments', {});
-      res.json({ success: true, message: 'All comments cleared' });
-    } else if (type === 'transactions') {
-      await supabaseRest('DELETE', 'transactions', {});
-      res.json({ success: true, message: 'All transactions cleared' });
-    } else if (type === 'full') {
-      await supabaseRest('DELETE', 'comments', {});
-      await supabaseRest('DELETE', 'transactions', {});
-      res.json({ success: true, message: 'Comments and transactions cleared' });
-    } else {
-      res.status(400).json({ error: 'Invalid reset type' });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ============================================
 // RESERVE ROUTES
 // ============================================

@@ -262,7 +262,6 @@
     <div class="tabs">
       <div class="tab active" onclick="switchTab('users', event)">Users</div>
       <div class="tab" onclick="switchTab('traffic', event)">Traffic Logs</div>
-      <div class="tab" onclick="switchTab('reset', event)">Reset</div>
     </div>
 
     <!-- CONTENT -->
@@ -326,30 +325,6 @@
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <!-- RESET TAB -->
-      <div id="resetTab" class="tab-content hidden">
-        <div class="card">
-          <h2>Reset App Variables</h2>
-          <p style="color: #666; font-size: 14px; margin-bottom: 24px;">
-            Manually reset app data. Useful for cleaning up during demo day.
-          </p>
-
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-            <button onclick="resetData('comments')" style="background: #f39c12; color: white; padding: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-              🗑️ Clear Comments<br><small style="font-size: 11px; opacity: 0.9;">(Remove XSS)</small>
-            </button>
-            <button onclick="resetData('transactions')" style="background: #3498db; color: white; padding: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-              🗑️ Clear Transactions<br><small style="font-size: 11px; opacity: 0.9;">(Keep balances)</small>
-            </button>
-            <button onclick="resetData('full')" style="background: #e74c3c; color: white; padding: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-              🗑️ Full Reset<br><small style="font-size: 11px; opacity: 0.9;">(Both above)</small>
-            </button>
-          </div>
-
-          <div id="resetMessage" class="message" style="margin-top: 20px;"></div>
         </div>
       </div>
     </div>
@@ -476,30 +451,6 @@
         if (res.ok) {
           showMessage('User deleted');
           loadUsers();
-        } else {
-          showMessage(data.error, true);
-        }
-      } catch (err) {
-        showMessage(err.message, true);
-      }
-    }
-
-    async function resetData(type) {
-      if (!confirm(`Reset ${type}? This cannot be undone.`)) return;
-
-      try {
-        const res = await fetch('/api/admin/reset', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          const msgEl = document.getElementById('resetMessage');
-          msgEl.textContent = '✓ ' + data.message;
-          msgEl.classList.add('show');
-          msgEl.classList.remove('error');
-          setTimeout(() => msgEl.classList.remove('show'), 3000);
         } else {
           showMessage(data.error, true);
         }
