@@ -260,7 +260,7 @@
         <form onsubmit="handleTOTPSubmit(event)">
           <div class="form-group">
             <label>Authenticator Code</label>
-            <input type="text" id="totp" maxlength="6" placeholder="Leave blank if MFA not enabled" autocomplete="off" />
+            <input type="text" id="totp" maxlength="6" placeholder="000000" required autocomplete="off" />
           </div>
           <button type="submit">Complete Login</button>
         </form>

@@ -178,6 +178,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Only require TOTP if user has MFA enabled
     if (user.totp_enabled) {
       if (!totp_code) {
         return res.status(400).json({ error: 'TOTP code required' });
