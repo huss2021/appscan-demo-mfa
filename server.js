@@ -497,25 +497,49 @@ app.delete('/api/admin/users/:userId', async (req, res) => {
 
     const userId = req.params.userId;
 
-    // Delete in order: transactions → comments → accounts → user
+    // Step 1: Get user's account IDs
+    let userAccounts = [];
+    try {
+      userAccounts = await supabaseRest('GET', 'accounts', { where: { user_id: userId } });
+    } catch (err) {
+      console.log('No accounts found');
+    }
+
+    const accountIds = userAccounts ? userAccounts.map(a => a.id) : [];
+
+    // Step 2: Delete transactions (both from_user and to_account)
     try {
       await supabaseRest('DELETE', 'transactions', { where: { from_user_id: userId } });
     } catch (err) {
-      console.log('No transactions to delete');
+      console.log('No outgoing transactions to delete');
     }
 
+    // Also delete transactions pointing to this user's accounts
+    if (accountIds.length > 0) {
+      for (const accountId of accountIds) {
+        try {
+          await supabaseRest('DELETE', 'transactions', { where: { to_account_id: accountId } });
+        } catch (err) {
+          console.log('No incoming transactions to delete for account:', accountId);
+        }
+      }
+    }
+
+    // Step 3: Delete comments
     try {
       await supabaseRest('DELETE', 'comments', { where: { user_id: userId } });
     } catch (err) {
       console.log('No comments to delete');
     }
 
+    // Step 4: Delete accounts
     try {
       await supabaseRest('DELETE', 'accounts', { where: { user_id: userId } });
     } catch (err) {
       console.log('No accounts to delete');
     }
 
+    // Step 5: Delete user
     await supabaseRest('DELETE', 'users', { where: { id: userId } });
     res.json({ success: true });
   } catch (err) {
@@ -539,11 +563,15 @@ app.post('/api/admin/users/reset-password', async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await supabaseRest('PATCH', 'users', {
-      update: { password: hashedPassword },
+      update: { 
+        password: hashedPassword,
+        totp_enabled: false,
+        totp_secret: null
+      },
       where: { id: userId }
     });
 
-    res.json({ success: true, message: 'Password reset' });
+    res.json({ success: true, message: 'Password reset and MFA disabled' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

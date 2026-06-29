@@ -294,7 +294,6 @@
                   <th>Name</th>
                   <th>Email</th>
                   <th>Balance</th>
-                  <th>MFA</th>
                   <th>Registration IP</th>
                   <th>Status</th>
                   <th>Created</th>
@@ -396,7 +395,6 @@
               <td>${user.full_name || 'N/A'}</td>
               <td>${user.email}</td>
               <td>$${user.balance ? parseFloat(user.balance).toFixed(2) : '0.00'}</td>
-              <td><span class="status-badge ${user.totp_enabled ? 'status-active' : 'status-inactive'}">${user.totp_enabled ? '✓ Enabled' : '✗ Disabled'}</span></td>
               <td>${user.registration_ip || 'N/A'}</td>
               <td><span class="status-badge status-active">Active</span></td>
               <td>${new Date(user.created_at).toLocaleDateString()}</td>
