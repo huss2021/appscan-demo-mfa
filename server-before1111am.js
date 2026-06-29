@@ -88,9 +88,7 @@ app.use((req, res, next) => {
     ip_address: ip,
     method: req.method,
     path: req.path,
-    status_code: res.statusCode,
-    user_id: req.session.userId || null,
-    user_email: req.session.email || null
+    status_code: res.statusCode
   });
   if (trafficLogs.length > 10000) trafficLogs = trafficLogs.slice(-10000);
   next();
@@ -566,119 +564,9 @@ app.get('/api/test-accounts', (req, res) => {
   });
 });
 
-// ============================================
-// MFA ROUTES
-// ============================================
-
-// POST /api/mfa/enable - Generate QR code for MFA setup
-app.post('/api/mfa/enable', requireAuth, async (req, res) => {
-  try {
-    const secret = speakeasy.generateSecret({
-      name: `AppScan Demo (${req.session.email})`,
-      length: 32
-    });
-
-    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
-
-    res.json({
-      secret: secret.base32,
-      qrCode,
-      message: 'Scan this QR code with your authenticator app'
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/mfa/verify - Verify TOTP and enable MFA
-app.post('/api/mfa/verify', requireAuth, async (req, res) => {
-  try {
-    const { totp_secret, totp_code } = req.body;
-
-    if (!totp_secret || !totp_code) {
-      return res.status(400).json({ error: 'Secret and code required' });
-    }
-
-    const verified = speakeasy.totp.verify({
-      secret: totp_secret,
-      encoding: 'base32',
-      token: totp_code,
-      window: 2
-    });
-
-    if (!verified) {
-      return res.status(401).json({ error: 'Invalid TOTP code' });
-    }
-
-    // Save secret to user
-    await supabaseRest('PATCH', 'users', {
-      update: {
-        totp_secret: totp_secret,
-        totp_enabled: true
-      },
-      where: { id: req.session.userId }
-    });
-
-    res.json({ success: true, message: 'MFA enabled' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/mfa/disable - Disable MFA
-app.post('/api/mfa/disable', requireAuth, async (req, res) => {
-  try {
-    const { totp_code } = req.body;
-
-    const users = await supabaseRest('GET', 'users', { where: { id: req.session.userId } });
-    if (!users || users.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const user = users[0];
-
-    // Verify code before allowing disable
-    if (totp_code && user.totp_secret) {
-      const verified = speakeasy.totp.verify({
-        secret: user.totp_secret,
-        encoding: 'base32',
-        token: totp_code,
-        window: 2
-      });
-
-      if (!verified) {
-        return res.status(401).json({ error: 'Invalid TOTP code' });
-      }
-    }
-
-    await supabaseRest('PATCH', 'users', {
-      update: {
-        totp_secret: null,
-        totp_enabled: false
-      },
-      where: { id: req.session.userId }
-    });
-
-    res.json({ success: true, message: 'MFA disabled' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/mfa/status - Check MFA status
-app.get('/api/mfa/status', requireAuth, async (req, res) => {
-  try {
-    const users = await supabaseRest('GET', 'users', { where: { id: req.session.userId } });
-    if (!users || users.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const user = users[0];
-    res.json({
-      mfa_enabled: user.totp_enabled || false,
-      email: user.email
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Start server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`AppScan Demo App running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

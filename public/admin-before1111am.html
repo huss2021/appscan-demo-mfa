@@ -313,7 +313,6 @@
               <thead>
                 <tr>
                   <th>Timestamp</th>
-                  <th>User</th>
                   <th>IP Address</th>
                   <th>Method</th>
                   <th>Path</th>
@@ -388,14 +387,13 @@
           const html = data.map(log => `
             <tr>
               <td>${new Date(log.timestamp).toLocaleString()}</td>
-              <td>${log.user_email || 'Anonymous'}</td>
               <td>${log.ip_address}</td>
               <td>${log.method}</td>
               <td>${log.path}</td>
               <td>${log.status_code}</td>
             </tr>
           `).join('');
-          document.getElementById('trafficTableBody').innerHTML = html || '<tr><td colspan="6" style="text-align: center; color: #999;">No traffic data</td></tr>';
+          document.getElementById('trafficTableBody').innerHTML = html || '<tr><td colspan="5" style="text-align: center; color: #999;">No traffic data</td></tr>';
         }
       } catch (err) {
         showMessage(err.message, true);

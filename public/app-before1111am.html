@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Bank - Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-right span {
+      font-size: 13px;
+    }
+
+    .logout-btn {
+      padding: 8px 16px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .logout-btn:hover {
+      background: #c0392b;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+    }
+
+    .sidebar {
+      width: 200px;
+      background: #2c3e50;
+      color: white;
+      padding: 20px 0;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      border-left: 4px solid transparent;
+      transition: all 0.2s;
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: #34495e;
+      border-left-color: #3498db;
+    }
+
+    .nav-item.active {
+      background: #34495e;
+      border-left-color: #3498db;
+      color: #3498db;
+      font-weight: 600;
+    }
+
+    .content {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      border: 1px solid #e8e8e8;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #555;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      padding: 10px 16px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .message {
+      background: #e7f3ff;
+      border: 1px solid #b3d9ff;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      color: #004085;
+      font-size: 13px;
+      display: none;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .account-details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .detail-item {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 4px;
+      border-left: 3px solid #3498db;
+    }
+
+    .detail-item strong {
+      display: block;
+      color: #2c3e50;
+      margin-bottom: 6px;
+    }
+
+    .detail-item span {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .transaction-item {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      border-left: 3px solid #3498db;
+      font-size: 13px;
+    }
+
+    .comment-item {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      border-left: 3px solid #3498db;
+    }
+
+    .comment-content {
+      font-size: 13px;
+      color: #333;
+      word-break: break-word;
+      margin-top: 8px;
+    }
+
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #c7254e;
+    }
+
+    .api-endpoint {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-x: auto;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- HEADER -->
+    <header>
+      <h1>Simple Bank for Learning Security</h1>
+      <div class="header-right">
+        <span>Logged in as: <strong id="headerEmail"></strong></span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <div class="main">
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <div class="nav-item active" onclick="showPage('account', event)">💰 Account</div>
+        <div class="nav-item" onclick="showPage('transfer', event)">📤 Transfer</div>
+        <div class="nav-item" onclick="showPage('transactions', event)">📊 Transactions</div>
+        <div class="nav-item" onclick="showPage('search', event)">🔍 Search</div>
+        <div class="nav-item" onclick="showPage('comments', event)">💬 Comments</div>
+        <div class="nav-item" onclick="showPage('api', event)">🔌 API</div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="content">
+        <div id="message" class="message"></div>
+
+        <!-- Account -->
+        <div id="accountPage" class="card">
+          <h2>Account</h2>
+          <div id="accountInfo"></div>
+        </div>
+
+        <!-- Transfer -->
+        <div id="transferPage" class="card hidden">
+          <h2>Transfer Funds</h2>
+          <form onsubmit="handleTransfer(event)">
+            <div class="form-group">
+              <label>Recipient Account ID</label>
+              <input type="text" id="transferToAccount" required />
+            </div>
+            <div class="form-group">
+              <label>Amount ($)</label>
+              <input type="number" id="transferAmount" step="0.01" required />
+            </div>
+            <button type="submit">Send Transfer</button>
+          </form>
+        </div>
+
+        <!-- Transactions -->
+        <div id="transactionsPage" class="card hidden">
+          <h2>Transactions</h2>
+          <div id="transactionsList"></div>
+        </div>
+
+        <!-- Search -->
+        <div id="searchPage" class="card hidden">
+          <h2>Search Users</h2>
+          <form onsubmit="handleSearch(event)">
+            <div class="form-group">
+              <label>Search by name or email</label>
+              <input type="text" id="searchQuery" required />
+            </div>
+            <button type="submit">Search</button>
+          </form>
+          <div id="searchResults" style="margin-top: 20px;"></div>
+        </div>
+
+        <!-- Comments -->
+        <div id="commentsPage" class="card hidden">
+          <h2>Comments</h2>
+          <h3>Post a Comment</h3>
+          <form onsubmit="handlePostComment(event)">
+            <textarea id="commentText" required></textarea>
+            <button type="submit" style="margin-top: 10px;">Post Comment</button>
+          </form>
+          <h3>Recent Comments</h3>
+          <div id="commentsList" style="margin-top: 15px;"></div>
+        </div>
+
+        <!-- API -->
+        <div id="apiPage" class="card hidden">
+          <h2>API Integration</h2>
+          <h3>Your API Key</h3>
+          <div style="background: #f9f9f9; padding: 12px; border-radius: 4px; margin-top: 10px;">
+            <code id="apiKeyDisplay">Loading...</code>
+          </div>
+          <h3 style="margin-top: 20px;">API Endpoints</h3>
+          <div class="api-endpoint">GET /api/v1/accounts</div>
+          <div class="api-endpoint">GET /api/v1/transactions</div>
+          <p style="font-size: 12px; color: #666; margin-top: 15px;">Authorization: Bearer [api-key]</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let apiKey = null;
+
+    function showMessage(msg, isError = false) {
+      const msgEl = document.getElementById('message');
+      msgEl.textContent = msg;
+      msgEl.classList.add('show');
+      if (isError) {
+        msgEl.classList.add('error');
+      } else {
+        msgEl.classList.remove('error');
+      }
+    }
+
+    function showPage(page, event) {
+      // Hide all
+      document.getElementById('accountPage').classList.add('hidden');
+      document.getElementById('transferPage').classList.add('hidden');
+      document.getElementById('transactionsPage').classList.add('hidden');
+      document.getElementById('searchPage').classList.add('hidden');
+      document.getElementById('commentsPage').classList.add('hidden');
+      document.getElementById('apiPage').classList.add('hidden');
+
+      // Update nav
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Show selected
+      switch(page) {
+        case 'account':
+          loadAccount();
+          document.getElementById('accountPage').classList.remove('hidden');
+          break;
+        case 'transfer':
+          document.getElementById('transferPage').classList.remove('hidden');
+          break;
+        case 'transactions':
+          loadTransactions();
+          document.getElementById('transactionsPage').classList.remove('hidden');
+          break;
+        case 'search':
+          document.getElementById('searchPage').classList.remove('hidden');
+          break;
+        case 'comments':
+          loadComments();
+          document.getElementById('commentsPage').classList.remove('hidden');
+          break;
+        case 'api':
+          document.getElementById('apiKeyDisplay').textContent = apiKey || 'Loading...';
+          document.getElementById('apiPage').classList.remove('hidden');
+          break;
+      }
+    }
+
+    async function loadAccount() {
+      try {
+        const res = await fetch('/api/user/account');
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('accountInfo').innerHTML = `
+            <div class="account-details">
+              <div class="detail-item">
+                <strong>Type</strong>
+                <span>${data.account_type}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Number</strong>
+                <span>${data.account_number}</span>
+              </div>
+              <div class="detail-item">
+                <strong>Balance</strong>
+                <span>$${parseFloat(data.balance).toFixed(2)}</span>
+              </div>
+              <div class="detail-item">
+                <strong>ID</strong>
+                <span style="font-size: 11px; font-family: monospace;">${data.id}</span>
+              </div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleTransfer(event) {
+      event.preventDefault();
+      const toAccountId = document.getElementById('transferToAccount').value;
+      const amount = parseFloat(document.getElementById('transferAmount').value);
+
+      try {
+        const res = await fetch('/api/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toAccountId, amount })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage(`Transfer of $${amount} sent!`);
+          document.getElementById('transferAmount').value = '';
+          document.getElementById('transferToAccount').value = '';
+        } else {
+          showMessage(data.error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function loadTransactions() {
+      try {
+        const res = await fetch('/api/v1/transactions');
+        const data = await res.json();
+        if (res.ok && data.length) {
+          document.getElementById('transactionsList').innerHTML = data.map(t => `
+            <div class="transaction-item">
+              <strong>${t.id}</strong> - $${parseFloat(t.amount).toFixed(2)} (${t.status})
+            </div>
+          `).join('');
+        } else {
+          document.getElementById('transactionsList').innerHTML = '<p style="font-size: 13px; color: #666;">No transactions</p>';
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleSearch(event) {
+      event.preventDefault();
+      const q = document.getElementById('searchQuery').value;
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (res.ok && data.length) {
+          document.getElementById('searchResults').innerHTML = data.map(user => `
+            <div class="detail-item">
+              <strong>${user.email}</strong><br/>
+              <span>${user.full_name || 'No name'}</span>
+            </div>
+          `).join('');
+        } else {
+          document.getElementById('searchResults').innerHTML = '<p style="font-size: 13px; color: #666;">No results</p>';
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function loadComments() {
+      try {
+        const res = await fetch('/api/comments');
+        const data = await res.json();
+        if (res.ok && data.length) {
+          document.getElementById('commentsList').innerHTML = data.map(c => `
+            <div class="comment-item">
+              <strong>User ${c.user_id}</strong>
+              <div class="comment-content">${c.content}</div>
+            </div>
+          `).join('');
+        } else {
+          document.getElementById('commentsList').innerHTML = '<p style="font-size: 13px; color: #666;">No comments</p>';
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handlePostComment(event) {
+      event.preventDefault();
+      const comment = document.getElementById('commentText').value;
+
+      try {
+        const res = await fetch('/api/profile/comment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comment })
+        });
+        if (res.ok) {
+          showMessage('Comment posted!');
+          document.getElementById('commentText').value = '';
+          loadComments();
+        } else {
+          showMessage((await res.json()).error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout');
+      localStorage.removeItem('apiKey');
+      window.location.href = '/';
+    }
+
+    // Init
+    async function init() {
+      apiKey = localStorage.getItem('apiKey');
+      if (!apiKey) {
+        window.location.href = '/';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/user/profile');
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('headerEmail').textContent = data.email;
+          loadAccount();
+        } else {
+          window.location.href = '/';
+        }
+      } catch (err) {
+        window.location.href = '/';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
