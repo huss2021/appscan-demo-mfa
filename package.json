@@ -19,7 +19,8 @@
     "bcryptjs": "^2.4.3",
     "express-session": "^1.17.3",
     "@supabase/supabase-js": "^2.21.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
