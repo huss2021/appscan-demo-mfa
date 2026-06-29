@@ -256,9 +256,9 @@ app.get('/api/user/account', requireAuth, async (req, res) => {
   try {
     const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: req.session.userId } });
     if (!accounts || accounts.length === 0) {
-      return res.status(404).json({ error: 'Account not found' });
+      return res.status(404).json({ error: 'No accounts found' });
     }
-    res.json(accounts[0]);
+    res.json(accounts);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -633,6 +633,18 @@ app.post('/api/user/reserve', requireAuth, async (req, res) => {
       where: { id: req.session.userId }
     });
     res.json({ success: true, reservedUntil: expiresAt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/user/un-reserve', requireAuth, async (req, res) => {
+  try {
+    await supabaseRest('PATCH', 'users', {
+      update: { reserved_until: null },
+      where: { id: req.session.userId }
+    });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
