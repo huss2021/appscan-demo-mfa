@@ -5,10 +5,65 @@ const bodyParser = require('body-parser');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const bcrypt = require('bcryptjs');
-const { createClient } = require('@supabase/supabase-js');
 const session = require('express-session');
+const crypto = require('crypto');
 
 const app = express();
+
+// Supabase REST API config
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rczasgalkjungxegwtbt.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const ADMIN_EMAIL = 'admin@appscan.com';
+
+// Helper to make Supabase REST calls
+async function supabaseRest(method, table, options = {}) {
+  const { data, where, match, insert, update, select = '*' } = options;
+  
+  let url = `${SUPABASE_URL}/rest/v1/${table}`;
+  
+  if (where) {
+    const params = Object.entries(where).map(([key, val]) => 
+      `${key}=eq.${encodeURIComponent(val)}`
+    ).join('&');
+    url += `?${params}`;
+  }
+  
+  if (match) {
+    const params = Object.entries(match).map(([key, val]) => 
+      `${key}=eq.${encodeURIComponent(val)}`
+    ).join('&');
+    url += url.includes('?') ? `&${params}` : `?${params}`;
+  }
+  
+  const headers = {
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY
+  };
+  
+  const options_fetch = {
+    method,
+    headers
+  };
+  
+  if (data || insert || update) {
+    options_fetch.body = JSON.stringify(data || insert || update);
+  }
+  
+  try {
+    const res = await fetch(url, options_fetch);
+    const json = await res.json();
+    
+    if (!res.ok) {
+      throw new Error(json.message || json.error_description || 'Database error');
+    }
+    
+    return json;
+  } catch (err) {
+    console.error(`Supabase REST error:`, err.message);
+    throw err;
+  }
+}
 
 // Middleware
 app.use(cors());
@@ -19,7 +74,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'demo-secret-key',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false, httpOnly: true, maxAge: 1800000 } // 30 min
+  cookie: { secure: false, httpOnly: true, maxAge: 1800000 }
 }));
 
 // Traffic logging
@@ -39,22 +94,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Supabase - Simple initialization WITHOUT Realtime
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
-  {
-    realtime: {
-      params: {
-        eventsPerSecond: 0
-      }
-    }
-  }
-);
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ============================================
+// ROUTES
+// ============================================
+
+// Serve pages
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/login.html');
+});
+
+app.get('/app.html', (req, res) => {
+  res.sendFile(__dirname + '/public/app.html');
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(__dirname + '/public/admin.html');
 });
 
 // ============================================
@@ -65,140 +124,36 @@ app.get('/health', (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { email, password, fullName } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userId = require('crypto').randomUUID();
+    const userId = crypto.randomUUID();
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .insert({
-        id: userId,
-        email,
-        password: hashedPassword,
-        full_name: fullName,
-        totp_enabled: false
-      })
-      .select();
+    const newUser = {
+      id: userId,
+      email,
+      password: hashedPassword,
+      full_name: fullName,
+      totp_enabled: false,
+      registration_ip: ip,
+      created_at: new Date().toISOString()
+    };
 
-    if (userError) {
-      return res.status(400).json({ error: userError.message });
-    }
+    await supabaseRest('POST', 'users', { insert: newUser });
 
-    // Create account with $100 balance
+    // Create account with $100
     const accountNumber = 'ACC' + Math.random().toString(36).substring(2, 11).toUpperCase();
-    const { error: accountError } = await supabase
-      .from('accounts')
-      .insert({
+    await supabaseRest('POST', 'accounts', {
+      insert: {
         user_id: userId,
         account_number: accountNumber,
         account_type: 'Checking',
         balance: 100.00
-      });
-
-    if (accountError) {
-      console.error('Account creation error:', accountError);
-    }
-
-    res.json({ success: true, message: 'User registered. Please set up TOTP.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/auth/enroll-totp
-app.post('/api/auth/enroll-totp', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
-    }
-
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email);
-
-    if (error || users.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const user = users[0];
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate TOTP secret
-    const secret = speakeasy.generateSecret({
-      name: `AppScan Demo (${email})`,
-      issuer: 'AppScan Demo',
-      length: 32
+      }
     });
 
-    // Generate QR code
-    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
-
-    // Store temporary secret in session
-    req.session.pendingSecret = secret.base32;
-    req.session.pendingSecretId = user.id;
-
-    res.json({
-      qrCode,
-      secret: secret.base32,
-      manualEntryKey: secret.base32
-    });
+    res.json({ success: true, message: 'User registered' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/auth/verify-totp-setup
-app.post('/api/auth/verify-totp-setup', async (req, res) => {
-  try {
-    const { token } = req.body;
-    const secret = req.session.pendingSecret;
-    const userId = req.session.pendingSecretId;
-
-    if (!secret) {
-      return res.status(400).json({ error: 'No pending TOTP setup' });
-    }
-
-    const verified = speakeasy.totp.verify({
-      secret,
-      encoding: 'base32',
-      token,
-      window: 2
-    });
-
-    if (!verified) {
-      return res.status(401).json({ error: 'Invalid TOTP code' });
-    }
-
-    // Save TOTP secret to database
-    const { error } = await supabase
-      .from('users')
-      .update({
-        totp_secret: secret,
-        totp_enabled: true
-      })
-      .eq('id', userId);
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    delete req.session.pendingSecret;
-    delete req.session.pendingSecretId;
-
-    res.json({ success: true, message: 'TOTP enabled successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -207,16 +162,9 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, totp_code } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
-    }
-
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email);
-
-    if (error || users.length === 0) {
+    const users = await supabaseRest('GET', 'users', { where: { email } });
+    
+    if (!users || users.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -227,7 +175,6 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // If TOTP enabled, verify code
     if (user.totp_enabled) {
       if (!totp_code) {
         return res.status(400).json({ error: 'TOTP code required' });
@@ -245,23 +192,13 @@ app.post('/api/auth/login', async (req, res) => {
       }
     }
 
-    // Set session
     req.session.userId = user.id;
     req.session.email = user.email;
 
-    // Generate API key for this session
-    const apiKey = 'sk_' + require('crypto').randomBytes(16).toString('hex');
-    await supabase
-      .from('api_keys')
-      .insert({
-        user_id: user.id,
-        key: apiKey,
-        label: `Session ${new Date().toISOString()}`
-      });
+    const apiKey = 'sk_' + crypto.randomBytes(16).toString('hex');
 
     res.json({
       success: true,
-      message: 'Login successful',
       user: { id: user.id, email: user.email, fullName: user.full_name },
       apiKey
     });
@@ -273,15 +210,13 @@ app.post('/api/auth/login', async (req, res) => {
 // GET /api/auth/logout
 app.get('/api/auth/logout', (req, res) => {
   req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
-    }
-    res.json({ success: true, message: 'Logged out' });
+    if (err) return res.status(500).json({ error: 'Logout failed' });
+    res.json({ success: true });
   });
 });
 
 // ============================================
-// PROTECTED ROUTES (require session)
+// PROTECTED ROUTES
 // ============================================
 
 const requireAuth = (req, res, next) => {
@@ -294,17 +229,12 @@ const requireAuth = (req, res, next) => {
 // GET /api/user/profile
 app.get('/api/user/profile', requireAuth, async (req, res) => {
   try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, email, full_name, created_at')
-      .eq('id', req.session.userId)
-      .single();
-
-    if (error) {
+    const users = await supabaseRest('GET', 'users', { where: { id: req.session.userId } });
+    if (!users || users.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-
-    res.json(user);
+    const user = users[0];
+    res.json({ id: user.id, email: user.email, full_name: user.full_name, created_at: user.created_at });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -313,121 +243,77 @@ app.get('/api/user/profile', requireAuth, async (req, res) => {
 // GET /api/user/account
 app.get('/api/user/account', requireAuth, async (req, res) => {
   try {
-    const { data: account, error } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('user_id', req.session.userId)
-      .single();
-
-    if (error || !account) {
+    const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: req.session.userId } });
+    if (!accounts || accounts.length === 0) {
       return res.status(404).json({ error: 'Account not found' });
     }
-
-    res.json(account);
+    res.json(accounts[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // ============================================
-// VULNERABLE ENDPOINTS (DAST should find these)
+// VULNERABLE ENDPOINTS (DAST)
 // ============================================
 
-// VULNERABILITY 1: SQL Injection in search
-// GET /api/search?q=...
+// GET /api/search - SQL Injection vulnerable
 app.get('/api/search', requireAuth, async (req, res) => {
   try {
     const q = req.query.q;
-    if (!q) {
-      return res.status(400).json({ error: 'Query required' });
-    }
+    if (!q) return res.status(400).json({ error: 'Query required' });
 
-    // VULNERABLE: Direct SQL injection
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email, full_name')
-      .or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
+    const users = await supabaseRest('GET', 'users', {
+      where: { email: q }
+    });
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json(data);
+    res.json(users || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// VULNERABILITY 2: IDOR (Insecure Direct Object Reference)
-// GET /api/user/:userId/account
+// GET /api/user/:userId/account - IDOR vulnerable
 app.get('/api/user/:userId/account', requireAuth, async (req, res) => {
   try {
-    const targetUserId = req.params.userId;
-
-    // VULNERABLE: No authorization check
-    const { data: account, error } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('user_id', targetUserId)
-      .single();
-
-    if (error) {
+    const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: req.params.userId } });
+    if (!accounts || accounts.length === 0) {
       return res.status(404).json({ error: 'Account not found' });
     }
-
-    res.json(account);
+    res.json(accounts[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// VULNERABILITY 3: IDOR in transactions
-// GET /api/transaction/:transactionId
+// GET /api/transaction/:transactionId - IDOR vulnerable
 app.get('/api/transaction/:transactionId', requireAuth, async (req, res) => {
   try {
-    const txnId = req.params.transactionId;
-
-    // VULNERABLE: No authorization check
-    const { data: txn, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('id', txnId)
-      .single();
-
-    if (error) {
+    const txns = await supabaseRest('GET', 'transactions', { where: { id: req.params.transactionId } });
+    if (!txns || txns.length === 0) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
-
-    res.json(txn);
+    res.json(txns[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// VULNERABILITY 4: Stored XSS in comments
-// POST /api/profile/comment
+// POST /api/profile/comment - XSS vulnerable
 app.post('/api/profile/comment', requireAuth, async (req, res) => {
   try {
     const { comment } = req.body;
+    if (!comment) return res.status(400).json({ error: 'Comment required' });
 
-    if (!comment) {
-      return res.status(400).json({ error: 'Comment required' });
-    }
-
-    // VULNERABLE: Storing unsanitized comment (XSS)
-    const { data, error } = await supabase
-      .from('comments')
-      .insert({
+    const result = await supabaseRest('POST', 'comments', {
+      insert: {
         user_id: req.session.userId,
-        content: comment
-      })
-      .select();
+        content: comment,
+        created_at: new Date().toISOString()
+      }
+    });
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json(data[0]);
+    res.json(result[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -436,72 +322,49 @@ app.post('/api/profile/comment', requireAuth, async (req, res) => {
 // GET /api/comments
 app.get('/api/comments', requireAuth, async (req, res) => {
   try {
-    const { data: comments, error } = await supabase
-      .from('comments')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    // VULNERABLE: Returning raw unsanitized HTML (XSS reflected in frontend)
-    res.json(comments);
+    const comments = await supabaseRest('GET', 'comments', {});
+    res.json(comments || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// VULNERABILITY 5: Missing CSRF protection & IDOR on transfer
-// POST /api/transfer
+// POST /api/transfer - CSRF + IDOR vulnerable
 app.post('/api/transfer', requireAuth, async (req, res) => {
   try {
     const { toAccountId, amount } = req.body;
-
     if (!toAccountId || !amount) {
       return res.status(400).json({ error: 'Account and amount required' });
     }
 
-    // VULNERABLE: No CSRF token check
-    const { data: account, error } = await supabase
-      .from('accounts')
-      .select('balance')
-      .eq('user_id', req.session.userId)
-      .single();
-
-    if (error || account.balance < amount) {
+    const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: req.session.userId } });
+    if (!accounts || accounts.length === 0 || accounts[0].balance < amount) {
       return res.status(400).json({ error: 'Insufficient balance' });
     }
 
-    // Deduct balance
-    await supabase
-      .from('accounts')
-      .update({ balance: account.balance - amount })
-      .eq('user_id', req.session.userId);
+    const newBalance = accounts[0].balance - amount;
+    await supabaseRest('PATCH', 'accounts', {
+      update: { balance: newBalance },
+      where: { user_id: req.session.userId }
+    });
 
-    // Credit recipient
-    const { data: recipientAccount } = await supabase
-      .from('accounts')
-      .select('balance')
-      .eq('id', toAccountId)
-      .single();
+    const recipientAccounts = await supabaseRest('GET', 'accounts', { where: { id: toAccountId } });
+    if (recipientAccounts && recipientAccounts.length > 0) {
+      await supabaseRest('PATCH', 'accounts', {
+        update: { balance: recipientAccounts[0].balance + amount },
+        where: { id: toAccountId }
+      });
+    }
 
-    await supabase
-      .from('accounts')
-      .update({ balance: recipientAccount.balance + amount })
-      .eq('id', toAccountId);
-
-    // Log transaction
-    const { data: txn } = await supabase
-      .from('transactions')
-      .insert({
+    const txn = await supabaseRest('POST', 'transactions', {
+      insert: {
         from_user_id: req.session.userId,
         to_account_id: toAccountId,
         amount,
-        status: 'completed'
-      })
-      .select();
+        status: 'completed',
+        created_at: new Date().toISOString()
+      }
+    });
 
     res.json({ success: true, transaction: txn[0] });
   } catch (err) {
@@ -510,75 +373,167 @@ app.post('/api/transfer', requireAuth, async (req, res) => {
 });
 
 // ============================================
-// API KEY AUTH ROUTES (for DAST API scanning)
+// API ROUTES
 // ============================================
 
-const requireApiKey = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing API key' });
-  }
-
-  const apiKey = authHeader.substring(7);
-  const { data: keys, error } = await supabase
-    .from('api_keys')
-    .select('user_id')
-    .eq('key', apiKey);
-
-  if (error || keys.length === 0) {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
-
-  req.userId = keys[0].user_id;
-  next();
-};
-
-// GET /api/v1/accounts (API endpoint)
-app.get('/api/v1/accounts', requireApiKey, async (req, res) => {
+// GET /api/v1/accounts
+app.get('/api/v1/accounts', requireAuth, async (req, res) => {
   try {
-    const { data: account, error } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('user_id', req.userId)
-      .single();
-
-    if (error) {
+    const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: req.session.userId } });
+    if (!accounts || accounts.length === 0) {
       return res.status(404).json({ error: 'Account not found' });
     }
-
-    res.json(account);
+    res.json(accounts[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/v1/transactions (API endpoint - vulnerable IDOR)
-app.get('/api/v1/transactions', requireApiKey, async (req, res) => {
+// GET /api/v1/transactions
+app.get('/api/v1/transactions', requireAuth, async (req, res) => {
   try {
-    // VULNERABLE: Can query any user's transactions if you know their ID
-    const userId = req.query.user_id || req.userId;
+    const userId = req.query.user_id || req.session.userId;
+    const txns = await supabaseRest('GET', 'transactions', {});
+    res.json(txns || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    const { data: txns, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .or(`from_user_id.eq.${userId},to_account_id.eq.${userId}`)
-      .limit(50);
+// ============================================
+// ADMIN ROUTES
+// ============================================
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
+app.get('/api/admin/check', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  
+  if (req.session.email === ADMIN_EMAIL) {
+    return res.json({ success: true });
+  }
+  
+  res.status(403).json({ error: 'Not admin' });
+});
+
+// GET /api/admin/users
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    if (req.session.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Admin only' });
     }
 
-    res.json(txns);
+    const users = await supabaseRest('GET', 'users', {});
+    const accounts = await supabaseRest('GET', 'accounts', {});
+
+    const usersWithBalance = users.map(user => ({
+      ...user,
+      balance: accounts.find(a => a.user_id === user.id)?.balance || 0
+    }));
+
+    res.json(usersWithBalance);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/traffic
+app.get('/api/admin/traffic', (req, res) => {
+  if (req.session.email !== ADMIN_EMAIL) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(trafficLogs.slice(-500));
+});
+
+// POST /api/admin/users/create
+app.post('/api/admin/users/create', async (req, res) => {
+  try {
+    if (req.session.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    const { email, password, fullName } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userId = crypto.randomUUID();
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    await supabaseRest('POST', 'users', {
+      insert: {
+        id: userId,
+        email,
+        password: hashedPassword,
+        full_name: fullName,
+        totp_enabled: false,
+        registration_ip: ip,
+        created_at: new Date().toISOString()
+      }
+    });
+
+    await supabaseRest('POST', 'accounts', {
+      insert: {
+        user_id: userId,
+        account_number: 'ACC' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+        account_type: 'Checking',
+        balance: 100.00
+      }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/admin/users/:userId
+app.delete('/api/admin/users/:userId', async (req, res) => {
+  try {
+    if (req.session.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    await supabaseRest('DELETE', 'users', { where: { id: req.params.userId } });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // ============================================
-// TEST DATA ENDPOINTS (for AppScan/DAST)
+// RESERVE ROUTES
 // ============================================
 
-// GET /api/test/totp/:secret
+app.post('/api/user/reserve', requireAuth, async (req, res) => {
+  try {
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await supabaseRest('PATCH', 'users', {
+      update: { reserved_until: expiresAt.toISOString() },
+      where: { id: req.session.userId }
+    });
+    res.json({ success: true, reservedUntil: expiresAt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/user/reserve-status', requireAuth, async (req, res) => {
+  try {
+    const users = await supabaseRest('GET', 'users', { where: { id: req.session.userId } });
+    if (!users || users.length === 0) {
+      return res.status(500).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    const isReserved = user.reserved_until && new Date(user.reserved_until) > new Date();
+    res.json({ isReserved, reservedUntil: user.reserved_until });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// TEST ENDPOINTS
+// ============================================
+
 app.get('/api/test/totp/:secret', (req, res) => {
   try {
     const secret = req.params.secret;
@@ -586,14 +541,12 @@ app.get('/api/test/totp/:secret', (req, res) => {
       secret,
       encoding: 'base32'
     });
-
     res.json({ secret, token, valid_for_seconds: 30 });
   } catch (err) {
     res.status(400).json({ error: 'Invalid secret' });
   }
 });
 
-// GET /api/test-accounts
 app.get('/api/test-accounts', (req, res) => {
   res.json({
     accounts: [
@@ -607,170 +560,13 @@ app.get('/api/test-accounts', (req, res) => {
         password: 'DemoPassword123!',
         totp_secret: 'KVKFKRCPNZQUYMLXOBZWKY3UPEA======'
       }
-    ],
-    note: 'These are test accounts for DAST scanning. Use with AppScan ASoC.'
+    ]
   });
 });
 
-// Serve login page as default
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/login.html');
-});
-
-// Serve app dashboard
-app.get('/app.html', (req, res) => {
-  res.sendFile(__dirname + '/public/app.html');
-});
-
-// Serve admin page
-app.get('/admin', (req, res) => {
-  res.sendFile(__dirname + '/public/admin.html');
-});
-
-// ============================================
-// ADMIN ROUTES
-// ============================================
-
-const ADMIN_EMAIL = 'admin@appscan.com';
-
-// Check if admin
-app.get('/api/admin/check', (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  
-  if (req.session.email === ADMIN_EMAIL) {
-    return res.json({ success: true });
-  }
-  
-  res.status(403).json({ error: 'Not admin' });
-});
-
-// Get all users
-app.get('/api/admin/users', async (req, res) => {
-  try {
-    if (req.session.email !== ADMIN_EMAIL) {
-      return res.status(403).json({ error: 'Admin only' });
-    }
-
-    const { data: users, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        created_at,
-        registration_ip,
-        accounts(balance)
-      `);
-
-    if (error) throw error;
-
-    const usersWithBalance = users.map(user => ({
-      ...user,
-      balance: user.accounts && user.accounts[0] ? user.accounts[0].balance : 0
-    }));
-
-    res.json(usersWithBalance);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Get traffic logs
-app.get('/api/admin/traffic', (req, res) => {
-  if (req.session.email !== ADMIN_EMAIL) {
-    return res.status(403).json({ error: 'Admin only' });
-  }
-  res.json(trafficLogs.slice(-500));
-});
-
-// Create user (admin only)
-app.post('/api/admin/users/create', async (req, res) => {
-  try {
-    if (req.session.email !== ADMIN_EMAIL) {
-      return res.status(403).json({ error: 'Admin only' });
-    }
-
-    const { email, password, fullName } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const userId = require('crypto').randomUUID();
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    const { error: userError } = await supabase
-      .from('users')
-      .insert({
-        id: userId,
-        email,
-        password: hashedPassword,
-        full_name: fullName,
-        totp_enabled: false,
-        registration_ip: ip
-      });
-
-    if (userError) return res.status(400).json({ error: userError.message });
-
-    await supabase
-      .from('accounts')
-      .insert({
-        user_id: userId,
-        account_number: 'ACC' + Math.random().toString(36).substring(2, 11).toUpperCase(),
-        account_type: 'Checking',
-        balance: 100.00
-      });
-
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Delete user (admin only)
-app.delete('/api/admin/users/:userId', async (req, res) => {
-  try {
-    if (req.session.email !== ADMIN_EMAIL) {
-      return res.status(403).json({ error: 'Admin only' });
-    }
-
-    await supabase.from('users').delete().eq('id', req.params.userId);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================
-// RESERVE/IN-USE ROUTES
-// ============================================
-
-app.post('/api/user/reserve', requireAuth, async (req, res) => {
-  try {
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const { error } = await supabase
-      .from('users')
-      .update({ reserved_until: expiresAt })
-      .eq('id', req.session.userId);
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ success: true, reservedUntil: expiresAt });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/user/reserve-status', requireAuth, async (req, res) => {
-  try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('reserved_until')
-      .eq('id', req.session.userId)
-      .single();
-
-    if (error) return res.status(500).json({ error: error.message });
-    
-    const isReserved = user.reserved_until && new Date(user.reserved_until) > new Date();
-    res.json({ isReserved, reservedUntil: user.reserved_until });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Start server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`AppScan Demo App running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
