@@ -39,17 +39,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Supabase - Simple initialization WITHOUT Realtime
+// Supabase - Simple initialization without Realtime
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
-  {
-    realtime: {
-      params: {
-        eventsPerSecond: 0
-      }
-    }
-  }
+  process.env.SUPABASE_KEY
 );
 
 // Health check
