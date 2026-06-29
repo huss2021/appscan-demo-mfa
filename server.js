@@ -22,6 +22,23 @@ app.use(session({
   cookie: { secure: false, httpOnly: true, maxAge: 1800000 } // 30 min
 }));
 
+// Traffic logging
+let trafficLogs = [];
+
+// IP tracking middleware
+app.use((req, res, next) => {
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  trafficLogs.push({
+    timestamp: new Date(),
+    ip_address: ip,
+    method: req.method,
+    path: req.path,
+    status_code: res.statusCode
+  });
+  if (trafficLogs.length > 10000) trafficLogs = trafficLogs.slice(-10000);
+  next();
+});
+
 // Supabase - Simple initialization without Realtime
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -598,9 +615,155 @@ app.get('/app.html', (req, res) => {
   res.sendFile(__dirname + '/public/app.html');
 });
 
-// Start server
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`AppScan Demo App running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+// Serve admin page
+app.get('/admin', (req, res) => {
+  res.sendFile(__dirname + '/public/admin.html');
+});
+
+// ============================================
+// ADMIN ROUTES
+// ============================================
+
+const ADMIN_EMAIL = 'admin@appscan.com';
+
+// Check if admin
+app.get('/api/admin/check', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  
+  if (req.session.email === ADMIN_EMAIL) {
+    return res.json({ success: true });
+  }
+  
+  res.status(403).json({ error: 'Not admin' });
+});
+
+// Get all users
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    if (req.session.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    const { data: users, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        email,
+        full_name,
+        created_at,
+        registration_ip,
+        accounts(balance)
+      `);
+
+    if (error) throw error;
+
+    const usersWithBalance = users.map(user => ({
+      ...user,
+      balance: user.accounts && user.accounts[0] ? user.accounts[0].balance : 0
+    }));
+
+    res.json(usersWithBalance);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get traffic logs
+app.get('/api/admin/traffic', (req, res) => {
+  if (req.session.email !== ADMIN_EMAIL) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(trafficLogs.slice(-500));
+});
+
+// Create user (admin only)
+app.post('/api/admin/users/create', async (req, res) => {
+  try {
+    if (req.session.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    const { email, password, fullName } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userId = require('crypto').randomUUID();
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    const { error: userError } = await supabase
+      .from('users')
+      .insert({
+        id: userId,
+        email,
+        password: hashedPassword,
+        full_name: fullName,
+        totp_enabled: false,
+        registration_ip: ip
+      });
+
+    if (userError) return res.status(400).json({ error: userError.message });
+
+    await supabase
+      .from('accounts')
+      .insert({
+        user_id: userId,
+        account_number: 'ACC' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+        account_type: 'Checking',
+        balance: 100.00
+      });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete user (admin only)
+app.delete('/api/admin/users/:userId', async (req, res) => {
+  try {
+    if (req.session.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    await supabase.from('users').delete().eq('id', req.params.userId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// RESERVE/IN-USE ROUTES
+// ============================================
+
+app.post('/api/user/reserve', requireAuth, async (req, res) => {
+  try {
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const { error } = await supabase
+      .from('users')
+      .update({ reserved_until: expiresAt })
+      .eq('id', req.session.userId);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true, reservedUntil: expiresAt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/user/reserve-status', requireAuth, async (req, res) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('reserved_until')
+      .eq('id', req.session.userId)
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    
+    const isReserved = user.reserved_until && new Date(user.reserved_until) > new Date();
+    res.json({ isReserved, reservedUntil: user.reserved_until });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
