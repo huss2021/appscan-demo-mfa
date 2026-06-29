@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple Bank - Dashboard</title>
+  <title>Simple Bank — Dashboard</title>
   <style>
     * {
       margin: 0;
@@ -19,127 +19,165 @@
 
     .app {
       display: flex;
-      flex-direction: column;
       min-height: 100vh;
     }
 
-    header {
-      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    /* SIDEBAR */
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(135deg, #0a2342 0%, #1a5f7a 100%);
       color: white;
-      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar h2 {
+      font-size: 16px;
+      padding: 0 20px 20px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-left-color: #d4af37;
+    }
+
+    .nav-item.active {
+      background: rgba(212, 175, 55, 0.2);
+      border-left-color: #d4af37;
+      color: #d4af37;
+    }
+
+    /* MAIN CONTENT */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0a2342 0%, #1a5f7a 100%);
+      color: white;
+      padding: 20px 40px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    header h1 {
-      font-size: 20px;
+    .header h1 {
+      font-size: 22px;
       font-weight: 600;
     }
 
     .header-right {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
     }
 
-    .header-right span {
-      font-size: 13px;
+    .user-info {
+      font-size: 14px;
+      opacity: 0.9;
     }
 
     .logout-btn {
       padding: 8px 16px;
-      background: #e74c3c;
+      background: rgba(255, 255, 255, 0.2);
       color: white;
-      border: none;
+      border: 1px solid white;
       border-radius: 4px;
       cursor: pointer;
       font-size: 13px;
       font-weight: 500;
+      transition: all 0.2s;
     }
 
     .logout-btn:hover {
-      background: #c0392b;
-    }
-
-    .main {
-      display: flex;
-      flex: 1;
-    }
-
-    .sidebar {
-      width: 200px;
-      background: #2c3e50;
-      color: white;
-      padding: 20px 0;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    }
-
-    .nav-item {
-      padding: 12px 20px;
-      cursor: pointer;
-      border-left: 4px solid transparent;
-      transition: all 0.2s;
-      font-size: 13px;
-      user-select: none;
-    }
-
-    .nav-item:hover {
-      background: #34495e;
-      border-left-color: #3498db;
-    }
-
-    .nav-item.active {
-      background: #34495e;
-      border-left-color: #3498db;
-      color: #3498db;
-      font-weight: 600;
+      background: rgba(255, 255, 255, 0.3);
     }
 
     .content {
       flex: 1;
-      padding: 30px;
+      padding: 40px;
       overflow-y: auto;
     }
 
     .card {
       background: white;
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-      padding: 24px;
+      padding: 32px;
       border: 1px solid #e8e8e8;
+      max-width: 600px;
     }
 
     .card h2 {
-      font-size: 20px;
-      margin-bottom: 20px;
-      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 24px;
+      color: #0a2342;
       font-weight: 600;
     }
 
-    .card h3 {
-      font-size: 16px;
-      margin-top: 20px;
+    .card-section {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .card-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .section-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #999;
+      font-weight: 600;
       margin-bottom: 12px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      font-size: 14px;
+    }
+
+    .info-label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .info-value {
       color: #2c3e50;
       font-weight: 600;
     }
 
-    .form-group {
-      margin-bottom: 16px;
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 6px;
-      color: #555;
-    }
-
-    input, textarea, select {
-      width: 100%;
+    input, textarea {
       padding: 10px 12px;
       border: 1px solid #ddd;
       border-radius: 4px;
@@ -147,40 +185,52 @@
       font-family: inherit;
     }
 
-    input:focus, textarea:focus, select:focus {
+    input:focus, textarea:focus {
       outline: none;
-      border-color: #3498db;
-      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 100px;
+      border-color: #1a5f7a;
+      box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.1);
     }
 
     button {
       padding: 10px 16px;
-      background: #3498db;
-      color: white;
+      background: linear-gradient(135deg, #d4af37 0%, #c9a227 100%);
+      color: #0a2342;
       border: none;
       border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
     }
 
     button:hover {
-      background: #2980b9;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 500;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+      box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3);
     }
 
     .message {
-      background: #e7f3ff;
-      border: 1px solid #b3d9ff;
-      padding: 12px;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      padding: 12px 16px;
       border-radius: 4px;
       margin-bottom: 20px;
-      color: #004085;
-      font-size: 13px;
+      color: #155724;
+      font-size: 14px;
       display: none;
     }
 
@@ -194,177 +244,229 @@
       display: block;
     }
 
-    .account-details {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-      margin-top: 15px;
+    .hidden {
+      display: none;
     }
 
-    .detail-item {
+    .qr-container {
+      text-align: center;
+      padding: 20px;
       background: #f9f9f9;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+
+    .qr-container img {
+      max-width: 300px;
+      height: auto;
+      margin: 12px 0;
+    }
+
+    .secret-code {
+      background: #f5f5f5;
       padding: 12px;
       border-radius: 4px;
-      border-left: 3px solid #3498db;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      word-break: break-all;
+      margin: 12px 0;
     }
 
-    .detail-item strong {
+    .mfa-status {
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .mfa-status.enabled {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+
+    .mfa-status.disabled {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
       display: block;
-      color: #2c3e50;
-      margin-bottom: 6px;
-    }
-
-    .detail-item span {
-      font-size: 13px;
-      color: #666;
-    }
-
-    .transaction-item {
-      background: #f9f9f9;
-      padding: 12px;
-      border-radius: 4px;
-      margin-bottom: 10px;
-      border-left: 3px solid #3498db;
-      font-size: 13px;
-    }
-
-    .comment-item {
-      background: #f9f9f9;
-      padding: 12px;
-      border-radius: 4px;
-      margin-bottom: 10px;
-      border-left: 3px solid #3498db;
-    }
-
-    .comment-content {
-      font-size: 13px;
-      color: #333;
-      word-break: break-word;
-      margin-top: 8px;
     }
 
     code {
       background: #f5f5f5;
       padding: 2px 6px;
       border-radius: 3px;
-      font-family: monospace;
+      font-family: 'Monaco', 'Courier New', monospace;
       font-size: 12px;
-      color: #c7254e;
-    }
-
-    .api-endpoint {
-      background: #f5f5f5;
-      padding: 12px;
-      border-radius: 4px;
-      margin-bottom: 10px;
-      font-family: monospace;
-      font-size: 12px;
-      overflow-x: auto;
-    }
-
-    .hidden {
-      display: none;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <!-- HEADER -->
-    <header>
-      <h1>Simple Bank for Learning Security</h1>
-      <div class="header-right">
-        <span>Logged in as: <strong id="headerEmail"></strong></span>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-      </div>
-    </header>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <h2>💳 Simple Bank</h2>
+      <div class="nav-item active" onclick="switchPage('account')">Account</div>
+      <div class="nav-item" onclick="switchPage('transfer')">Transfer</div>
+      <div class="nav-item" onclick="switchPage('transactions')">Transactions</div>
+      <div class="nav-item" onclick="switchPage('search')">Search</div>
+      <div class="nav-item" onclick="switchPage('comments')">Comments</div>
+      <div class="nav-item" onclick="switchPage('api')">API</div>
+      <div class="nav-item" onclick="switchPage('settings')">⚙️ Settings</div>
+    </div>
 
     <!-- MAIN -->
     <div class="main">
-      <!-- SIDEBAR -->
-      <div class="sidebar">
-        <div class="nav-item active" onclick="showPage('account', event)">💰 Account</div>
-        <div class="nav-item" onclick="showPage('transfer', event)">📤 Transfer</div>
-        <div class="nav-item" onclick="showPage('transactions', event)">📊 Transactions</div>
-        <div class="nav-item" onclick="showPage('search', event)">🔍 Search</div>
-        <div class="nav-item" onclick="showPage('comments', event)">💬 Comments</div>
-        <div class="nav-item" onclick="showPage('api', event)">🔌 API</div>
+      <!-- HEADER -->
+      <div class="header">
+        <h1>Dashboard</h1>
+        <div class="header-right">
+          <div class="user-info" id="userEmail">Loading...</div>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
       </div>
 
       <!-- CONTENT -->
       <div class="content">
         <div id="message" class="message"></div>
 
-        <!-- Account -->
-        <div id="accountPage" class="card">
-          <h2>Account</h2>
-          <div id="accountInfo"></div>
-        </div>
-
-        <!-- Transfer -->
-        <div id="transferPage" class="card hidden">
-          <h2>Transfer Funds</h2>
-          <form onsubmit="handleTransfer(event)">
-            <div class="form-group">
-              <label>Recipient Account ID</label>
-              <input type="text" id="transferToAccount" required />
+        <!-- ACCOUNT PAGE -->
+        <div id="account" class="page active">
+          <div class="card">
+            <h2>Your Account</h2>
+            <div class="card-section">
+              <div class="section-label">Account Information</div>
+              <div class="info-row">
+                <span class="info-label">Account Number</span>
+                <span class="info-value" id="accountNumber">-</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Account Type</span>
+                <span class="info-value" id="accountType">-</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Balance</span>
+                <span class="info-value">$<span id="accountBalance">0.00</span></span>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Amount ($)</label>
-              <input type="number" id="transferAmount" step="0.01" required />
-            </div>
-            <button type="submit">Send Transfer</button>
-          </form>
-        </div>
-
-        <!-- Transactions -->
-        <div id="transactionsPage" class="card hidden">
-          <h2>Transactions</h2>
-          <div id="transactionsList"></div>
-        </div>
-
-        <!-- Search -->
-        <div id="searchPage" class="card hidden">
-          <h2>Search Users</h2>
-          <form onsubmit="handleSearch(event)">
-            <div class="form-group">
-              <label>Search by name or email</label>
-              <input type="text" id="searchQuery" required />
-            </div>
-            <button type="submit">Search</button>
-          </form>
-          <div id="searchResults" style="margin-top: 20px;"></div>
-        </div>
-
-        <!-- Comments -->
-        <div id="commentsPage" class="card hidden">
-          <h2>Comments</h2>
-          <h3>Post a Comment</h3>
-          <form onsubmit="handlePostComment(event)">
-            <textarea id="commentText" required></textarea>
-            <button type="submit" style="margin-top: 10px;">Post Comment</button>
-          </form>
-          <h3>Recent Comments</h3>
-          <div id="commentsList" style="margin-top: 15px;"></div>
-        </div>
-
-        <!-- API -->
-        <div id="apiPage" class="card hidden">
-          <h2>API Integration</h2>
-          <h3>Your API Key</h3>
-          <div style="background: #f9f9f9; padding: 12px; border-radius: 4px; margin-top: 10px;">
-            <code id="apiKeyDisplay">Loading...</code>
           </div>
-          <h3 style="margin-top: 20px;">API Endpoints</h3>
-          <div class="api-endpoint">GET /api/v1/accounts</div>
-          <div class="api-endpoint">GET /api/v1/transactions</div>
-          <p style="font-size: 12px; color: #666; margin-top: 15px;">Authorization: Bearer [api-key]</p>
         </div>
+
+        <!-- TRANSFER PAGE -->
+        <div id="transfer" class="page">
+          <div class="card">
+            <h2>Transfer Funds</h2>
+            <form onsubmit="handleTransfer(event)">
+              <input type="text" placeholder="Recipient Account ID" id="recipientId" required />
+              <input type="number" placeholder="Amount" id="transferAmount" step="0.01" required />
+              <button type="submit">Transfer</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TRANSACTIONS PAGE -->
+        <div id="transactions" class="page">
+          <div class="card">
+            <h2>Recent Transactions</h2>
+            <div id="transactionsList">Loading...</div>
+          </div>
+        </div>
+
+        <!-- SEARCH PAGE -->
+        <div id="search" class="page">
+          <div class="card">
+            <h2>Search Users</h2>
+            <form onsubmit="handleSearch(event)">
+              <input type="text" placeholder="Search email" id="searchQuery" required />
+              <button type="submit">Search</button>
+            </form>
+            <div id="searchResults"></div>
+          </div>
+        </div>
+
+        <!-- COMMENTS PAGE -->
+        <div id="comments" class="page">
+          <div class="card">
+            <h2>Comments</h2>
+            <form onsubmit="handleComment(event)">
+              <textarea placeholder="Write a comment..." id="commentText" rows="4"></textarea>
+              <button type="submit">Post Comment</button>
+            </form>
+            <div id="commentsList" style="margin-top: 20px;"></div>
+          </div>
+        </div>
+
+        <!-- API PAGE -->
+        <div id="api" class="page">
+          <div class="card">
+            <h2>API Key</h2>
+            <div class="card-section">
+              <div class="section-label">Your API Key</div>
+              <div class="secret-code" id="apiKeyDisplay">Loading...</div>
+              <p style="font-size: 12px; color: #666; margin-top: 12px;">Use this key for API calls. Keep it secret!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS PAGE -->
+        <div id="settings" class="page">
+          <div class="card">
+            <h2>Security Settings</h2>
+            
+            <div class="card-section">
+              <div class="section-label">Two-Factor Authentication (2FA)</div>
+              <div id="mfaStatus" class="mfa-status disabled">
+                MFA is currently <strong>disabled</strong>
+              </div>
+              
+              <!-- Enable MFA Form -->
+              <div id="mfaEnableForm">
+                <form onsubmit="handleMFAEnable(event)">
+                  <button type="submit">Enable Two-Factor Authentication</button>
+                </form>
+              </div>
+
+              <!-- QR Code Display -->
+              <div id="mfaQRDisplay" class="hidden">
+                <p style="margin-bottom: 12px;">Scan this QR code with Microsoft Authenticator or Google Authenticator:</p>
+                <div class="qr-container">
+                  <img id="mfaQR" src="" alt="TOTP QR Code" />
+                </div>
+                <p style="font-size: 12px; color: #666; margin-bottom: 12px;">Or enter manually:</p>
+                <div class="secret-code" id="mfaSecret"></div>
+                
+                <form onsubmit="handleMFAVerify(event)">
+                  <input type="text" id="mfaCode" placeholder="6-digit code from authenticator" maxlength="6" required />
+                  <button type="submit">Verify & Enable</button>
+                </form>
+              </div>
+
+              <!-- Disable MFA Form -->
+              <div id="mfaDisableForm" class="hidden">
+                <p style="color: #666; font-size: 13px; margin-bottom: 12px;">To disable 2FA, enter your TOTP code:</p>
+                <form onsubmit="handleMFADisable(event)">
+                  <input type="text" id="mfaDisableCode" placeholder="6-digit code" maxlength="6" required />
+                  <button type="submit" class="btn-danger">Disable Two-Factor Authentication</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
   <script>
-    let apiKey = null;
+    let currentUser = null;
+    let mfaSecret = null;
 
     function showMessage(msg, isError = false) {
       const msgEl = document.getElementById('message');
@@ -375,46 +477,19 @@
       } else {
         msgEl.classList.remove('error');
       }
+      setTimeout(() => msgEl.classList.remove('show'), 4000);
     }
 
-    function showPage(page, event) {
-      // Hide all
-      document.getElementById('accountPage').classList.add('hidden');
-      document.getElementById('transferPage').classList.add('hidden');
-      document.getElementById('transactionsPage').classList.add('hidden');
-      document.getElementById('searchPage').classList.add('hidden');
-      document.getElementById('commentsPage').classList.add('hidden');
-      document.getElementById('apiPage').classList.add('hidden');
-
-      // Update nav
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    function switchPage(pageName) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(pageName).classList.add('active');
       event.target.classList.add('active');
 
-      // Show selected
-      switch(page) {
-        case 'account':
-          loadAccount();
-          document.getElementById('accountPage').classList.remove('hidden');
-          break;
-        case 'transfer':
-          document.getElementById('transferPage').classList.remove('hidden');
-          break;
-        case 'transactions':
-          loadTransactions();
-          document.getElementById('transactionsPage').classList.remove('hidden');
-          break;
-        case 'search':
-          document.getElementById('searchPage').classList.remove('hidden');
-          break;
-        case 'comments':
-          loadComments();
-          document.getElementById('commentsPage').classList.remove('hidden');
-          break;
-        case 'api':
-          document.getElementById('apiKeyDisplay').textContent = apiKey || 'Loading...';
-          document.getElementById('apiPage').classList.remove('hidden');
-          break;
-      }
+      if (pageName === 'account') loadAccount();
+      if (pageName === 'transactions') loadTransactions();
+      if (pageName === 'comments') loadComments();
+      if (pageName === 'settings') loadMFAStatus();
     }
 
     async function loadAccount() {
@@ -422,50 +497,9 @@
         const res = await fetch('/api/user/account');
         const data = await res.json();
         if (res.ok) {
-          document.getElementById('accountInfo').innerHTML = `
-            <div class="account-details">
-              <div class="detail-item">
-                <strong>Type</strong>
-                <span>${data.account_type}</span>
-              </div>
-              <div class="detail-item">
-                <strong>Number</strong>
-                <span>${data.account_number}</span>
-              </div>
-              <div class="detail-item">
-                <strong>Balance</strong>
-                <span>$${parseFloat(data.balance).toFixed(2)}</span>
-              </div>
-              <div class="detail-item">
-                <strong>ID</strong>
-                <span style="font-size: 11px; font-family: monospace;">${data.id}</span>
-              </div>
-            </div>
-          `;
-        }
-      } catch (err) {
-        showMessage(err.message, true);
-      }
-    }
-
-    async function handleTransfer(event) {
-      event.preventDefault();
-      const toAccountId = document.getElementById('transferToAccount').value;
-      const amount = parseFloat(document.getElementById('transferAmount').value);
-
-      try {
-        const res = await fetch('/api/transfer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ toAccountId, amount })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          showMessage(`Transfer of $${amount} sent!`);
-          document.getElementById('transferAmount').value = '';
-          document.getElementById('transferToAccount').value = '';
-        } else {
-          showMessage(data.error, true);
+          document.getElementById('accountNumber').textContent = data.account_number;
+          document.getElementById('accountType').textContent = data.account_type;
+          document.getElementById('accountBalance').textContent = parseFloat(data.balance).toFixed(2);
         }
       } catch (err) {
         showMessage(err.message, true);
@@ -476,36 +510,14 @@
       try {
         const res = await fetch('/api/v1/transactions');
         const data = await res.json();
-        if (res.ok && data.length) {
-          document.getElementById('transactionsList').innerHTML = data.map(t => `
-            <div class="transaction-item">
-              <strong>${t.id}</strong> - $${parseFloat(t.amount).toFixed(2)} (${t.status})
+        if (res.ok) {
+          const html = data.map(t => `
+            <div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px;">
+              <div><strong>$${parseFloat(t.amount).toFixed(2)}</strong> - ${t.status}</div>
+              <div style="color: #999; font-size: 12px;">${new Date(t.created_at).toLocaleDateString()}</div>
             </div>
           `).join('');
-        } else {
-          document.getElementById('transactionsList').innerHTML = '<p style="font-size: 13px; color: #666;">No transactions</p>';
-        }
-      } catch (err) {
-        showMessage(err.message, true);
-      }
-    }
-
-    async function handleSearch(event) {
-      event.preventDefault();
-      const q = document.getElementById('searchQuery').value;
-
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        if (res.ok && data.length) {
-          document.getElementById('searchResults').innerHTML = data.map(user => `
-            <div class="detail-item">
-              <strong>${user.email}</strong><br/>
-              <span>${user.full_name || 'No name'}</span>
-            </div>
-          `).join('');
-        } else {
-          document.getElementById('searchResults').innerHTML = '<p style="font-size: 13px; color: #666;">No results</p>';
+          document.getElementById('transactionsList').innerHTML = html || '<p style="color: #999;">No transactions yet</p>';
         }
       } catch (err) {
         showMessage(err.message, true);
@@ -516,37 +528,165 @@
       try {
         const res = await fetch('/api/comments');
         const data = await res.json();
-        if (res.ok && data.length) {
-          document.getElementById('commentsList').innerHTML = data.map(c => `
-            <div class="comment-item">
-              <strong>User ${c.user_id}</strong>
-              <div class="comment-content">${c.content}</div>
+        if (res.ok) {
+          const html = data.map(c => `
+            <div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px;">
+              <div><strong>${c.user_id}</strong></div>
+              <div>${c.content}</div>
+              <div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleDateString()}</div>
             </div>
           `).join('');
-        } else {
-          document.getElementById('commentsList').innerHTML = '<p style="font-size: 13px; color: #666;">No comments</p>';
+          document.getElementById('commentsList').innerHTML = html || '<p style="color: #999;">No comments yet</p>';
         }
       } catch (err) {
         showMessage(err.message, true);
       }
     }
 
-    async function handlePostComment(event) {
+    async function loadMFAStatus() {
+      try {
+        const res = await fetch('/api/mfa/status');
+        const data = await res.json();
+        if (res.ok) {
+          const statusEl = document.getElementById('mfaStatus');
+          if (data.mfa_enabled) {
+            statusEl.textContent = 'MFA is currently enabled';
+            statusEl.classList.remove('disabled');
+            statusEl.classList.add('enabled');
+            document.getElementById('mfaEnableForm').classList.add('hidden');
+            document.getElementById('mfaQRDisplay').classList.add('hidden');
+            document.getElementById('mfaDisableForm').classList.remove('hidden');
+          } else {
+            statusEl.textContent = 'MFA is currently disabled';
+            statusEl.classList.add('disabled');
+            statusEl.classList.remove('enabled');
+            document.getElementById('mfaEnableForm').classList.remove('hidden');
+            document.getElementById('mfaQRDisplay').classList.add('hidden');
+            document.getElementById('mfaDisableForm').classList.add('hidden');
+          }
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleMFAEnable(event) {
+      event.preventDefault();
+      try {
+        const res = await fetch('/api/mfa/enable', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          mfaSecret = data.secret;
+          document.getElementById('mfaQR').src = data.qrCode;
+          document.getElementById('mfaSecret').textContent = data.secret;
+          document.getElementById('mfaEnableForm').classList.add('hidden');
+          document.getElementById('mfaQRDisplay').classList.remove('hidden');
+          showMessage(data.message);
+        } else {
+          showMessage(data.error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleMFAVerify(event) {
+      event.preventDefault();
+      const totp_code = document.getElementById('mfaCode').value;
+      try {
+        const res = await fetch('/api/mfa/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ totp_secret: mfaSecret, totp_code })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('MFA enabled successfully!');
+          setTimeout(() => loadMFAStatus(), 1500);
+        } else {
+          showMessage(data.error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleMFADisable(event) {
+      event.preventDefault();
+      const totp_code = document.getElementById('mfaDisableCode').value;
+      try {
+        const res = await fetch('/api/mfa/disable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ totp_code })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('MFA disabled');
+          setTimeout(() => loadMFAStatus(), 1500);
+        } else {
+          showMessage(data.error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleTransfer(event) {
+      event.preventDefault();
+      const toAccountId = document.getElementById('recipientId').value;
+      const amount = document.getElementById('transferAmount').value;
+      try {
+        const res = await fetch('/api/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toAccountId, amount: parseFloat(amount) })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('Transfer successful!');
+          document.getElementById('recipientId').value = '';
+          document.getElementById('transferAmount').value = '';
+          loadAccount();
+        } else {
+          showMessage(data.error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleSearch(event) {
+      event.preventDefault();
+      const q = document.getElementById('searchQuery').value;
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (res.ok) {
+          const html = data.map(u => `<div style="padding: 8px; border: 1px solid #eee; margin-top: 8px; border-radius: 4px;"><strong>${u.email}</strong><br><small>${u.full_name}</small></div>`).join('');
+          document.getElementById('searchResults').innerHTML = html || '<p style="color: #999; margin-top: 12px;">No results</p>';
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function handleComment(event) {
       event.preventDefault();
       const comment = document.getElementById('commentText').value;
-
       try {
         const res = await fetch('/api/profile/comment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ comment })
         });
+        const data = await res.json();
         if (res.ok) {
           showMessage('Comment posted!');
           document.getElementById('commentText').value = '';
           loadComments();
         } else {
-          showMessage((await res.json()).error, true);
+          showMessage(data.error, true);
         }
       } catch (err) {
         showMessage(err.message, true);
@@ -555,27 +695,21 @@
 
     async function logout() {
       await fetch('/api/auth/logout');
-      localStorage.removeItem('apiKey');
       window.location.href = '/';
     }
 
-    // Init
     async function init() {
-      apiKey = localStorage.getItem('apiKey');
-      if (!apiKey) {
-        window.location.href = '/';
-        return;
-      }
-
       try {
         const res = await fetch('/api/user/profile');
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById('headerEmail').textContent = data.email;
-          loadAccount();
-        } else {
+        if (!res.ok) {
           window.location.href = '/';
+          return;
         }
+        const user = await res.json();
+        currentUser = user;
+        document.getElementById('userEmail').textContent = user.email;
+        document.getElementById('apiKeyDisplay').textContent = localStorage.getItem('apiKey') || 'N/A';
+        loadAccount();
       } catch (err) {
         window.location.href = '/';
       }
