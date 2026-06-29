@@ -495,7 +495,28 @@ app.delete('/api/admin/users/:userId', async (req, res) => {
       return res.status(403).json({ error: 'Admin only' });
     }
 
-    await supabaseRest('DELETE', 'users', { where: { id: req.params.userId } });
+    const userId = req.params.userId;
+
+    // Delete in order: transactions → comments → accounts → user
+    try {
+      await supabaseRest('DELETE', 'transactions', { where: { from_user_id: userId } });
+    } catch (err) {
+      console.log('No transactions to delete');
+    }
+
+    try {
+      await supabaseRest('DELETE', 'comments', { where: { user_id: userId } });
+    } catch (err) {
+      console.log('No comments to delete');
+    }
+
+    try {
+      await supabaseRest('DELETE', 'accounts', { where: { user_id: userId } });
+    } catch (err) {
+      console.log('No accounts to delete');
+    }
+
+    await supabaseRest('DELETE', 'users', { where: { id: userId } });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
