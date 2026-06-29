@@ -501,6 +501,32 @@ app.delete('/api/admin/users/:userId', async (req, res) => {
   }
 });
 
+// POST /api/admin/users/reset-password - Reset user password
+app.post('/api/admin/users/reset-password', async (req, res) => {
+  try {
+    if (req.session.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    const { userId, newPassword } = req.body;
+
+    if (!userId || !newPassword) {
+      return res.status(400).json({ error: 'User ID and password required' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await supabaseRest('PATCH', 'users', {
+      update: { password: hashedPassword },
+      where: { id: userId }
+    });
+
+    res.json({ success: true, message: 'Password reset' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/admin/reset - Reset app state
 app.post('/api/admin/reset', async (req, res) => {
   try {
