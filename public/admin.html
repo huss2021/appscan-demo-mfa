@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Bank - Admin Panel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .logout-btn {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      background: white;
+      padding: 0 24px;
+    }
+
+    .tab {
+      padding: 16px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+    }
+
+    .tab.active {
+      border-bottom-color: #c0392b;
+      color: #c0392b;
+    }
+
+    .tab:hover {
+      background: #f9f9f9;
+    }
+
+    .container {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid #e8e8e8;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: #555;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #c0392b;
+      box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+    }
+
+    button {
+      padding: 8px 16px;
+      background: #c0392b;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    button:hover {
+      background: #a93226;
+    }
+
+    button.danger {
+      background: #e74c3c;
+    }
+
+    button.danger:hover {
+      background: #c0392b;
+    }
+
+    .message {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      color: #155724;
+      font-size: 13px;
+      display: none;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f5f5f5;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #ddd;
+      color: #2c3e50;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+
+    .action-btn {
+      padding: 4px 8px;
+      margin-right: 4px;
+      font-size: 12px;
+    }
+
+    .delete-btn {
+      background: #e74c3c;
+    }
+
+    .delete-btn:hover {
+      background: #c0392b;
+    }
+
+    .create-form {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .create-form input {
+      grid-column: span 1;
+    }
+
+    .create-form button {
+      grid-column: span 2;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-inactive {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- HEADER -->
+    <header>
+      <h1>🔐 Admin Panel</h1>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </header>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('users', event)">Users</div>
+      <div class="tab" onclick="switchTab('traffic', event)">Traffic Logs</div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="container">
+      <div id="message" class="message"></div>
+
+      <!-- USERS TAB -->
+      <div id="usersTab" class="tab-content">
+        <div class="card">
+          <h2>Create New User</h2>
+          <div class="create-form">
+            <input type="text" id="newName" placeholder="Full Name" />
+            <input type="email" id="newEmail" placeholder="Email" />
+            <input type="password" id="newPassword" placeholder="Password" />
+            <input type="text" id="newEmail2" placeholder="Confirm Email" />
+            <button onclick="createUser()">Create User</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>All Users</h2>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Balance</th>
+                  <th>Registration IP</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="7" style="text-align: center; color: #999;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRAFFIC TAB -->
+      <div id="trafficTab" class="tab-content hidden">
+        <div class="card">
+          <h2>Last 30 Days Traffic</h2>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>IP Address</th>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="trafficTableBody">
+                <tr><td colspan="5" style="text-align: center; color: #999;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showMessage(msg, isError = false) {
+      const msgEl = document.getElementById('message');
+      msgEl.textContent = msg;
+      msgEl.classList.add('show');
+      if (isError) {
+        msgEl.classList.add('error');
+      } else {
+        msgEl.classList.remove('error');
+      }
+      setTimeout(() => msgEl.classList.remove('show'), 4000);
+    }
+
+    function switchTab(tab, event) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tab + 'Tab').classList.remove('hidden');
+      event.target.classList.add('active');
+
+      if (tab === 'users') {
+        loadUsers();
+      } else if (tab === 'traffic') {
+        loadTraffic();
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        const data = await res.json();
+        if (res.ok) {
+          const html = data.map(user => `
+            <tr>
+              <td>${user.full_name || 'N/A'}</td>
+              <td>${user.email}</td>
+              <td>$${user.balance ? parseFloat(user.balance).toFixed(2) : '0.00'}</td>
+              <td>${user.registration_ip || 'N/A'}</td>
+              <td><span class="status-badge status-active">Active</span></td>
+              <td>${new Date(user.created_at).toLocaleDateString()}</td>
+              <td><button class="action-btn delete-btn" onclick="deleteUser('${user.id}')">Delete</button></td>
+            </tr>
+          `).join('');
+          document.getElementById('usersTableBody').innerHTML = html;
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function loadTraffic() {
+      try {
+        const res = await fetch('/api/admin/traffic');
+        const data = await res.json();
+        if (res.ok) {
+          const html = data.map(log => `
+            <tr>
+              <td>${new Date(log.timestamp).toLocaleString()}</td>
+              <td>${log.ip_address}</td>
+              <td>${log.method}</td>
+              <td>${log.path}</td>
+              <td>${log.status_code}</td>
+            </tr>
+          `).join('');
+          document.getElementById('trafficTableBody').innerHTML = html || '<tr><td colspan="5" style="text-align: center; color: #999;">No traffic data</td></tr>';
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function createUser() {
+      const name = document.getElementById('newName').value;
+      const email = document.getElementById('newEmail').value;
+      const password = document.getElementById('newPassword').value;
+      const email2 = document.getElementById('newEmail2').value;
+
+      if (!name || !email || !password || !email2) {
+        showMessage('All fields required', true);
+        return;
+      }
+
+      if (email !== email2) {
+        showMessage('Emails do not match', true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/users/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, fullName: name })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('User created successfully');
+          document.getElementById('newName').value = '';
+          document.getElementById('newEmail').value = '';
+          document.getElementById('newPassword').value = '';
+          document.getElementById('newEmail2').value = '';
+          loadUsers();
+        } else {
+          showMessage(data.error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm('Are you sure you want to delete this user?')) return;
+
+      try {
+        const res = await fetch(`/api/admin/users/${userId}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage('User deleted');
+          loadUsers();
+        } else {
+          showMessage(data.error, true);
+        }
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout');
+      window.location.href = '/';
+    }
+
+    // Init
+    async function checkAdmin() {
+      try {
+        const res = await fetch('/api/admin/check');
+        if (!res.ok) {
+          window.location.href = '/';
+        } else {
+          loadUsers();
+        }
+      } catch (err) {
+        window.location.href = '/';
+      }
+    }
+
+    checkAdmin();
+  </script>
+</body>
+</html>
