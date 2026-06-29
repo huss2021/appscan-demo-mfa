@@ -97,20 +97,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// ============================================
-// NIGHTLY CLEANUP (Clear XSS comments at midnight PST)
-// ============================================
-cron.schedule('0 8 * * *', async () => {
-  try {
-    await supabaseRest('DELETE', 'comments', {});
-    console.log('[CLEANUP] ✓ XSS comments cleared at midnight PST');
-  } catch (err) {
-    console.error('[CLEANUP] Failed to clear comments:', err.message);
-  }
-});
-
-console.log('✓ Nightly cleanup scheduled for 00:00 PST (08:00 UTC)');
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -723,4 +709,23 @@ app.get('/api/mfa/status', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Start server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`AppScan Demo App running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Initialize cleanup schedule AFTER server starts
+  cron.schedule('0 8 * * *', async () => {
+    try {
+      await supabaseRest('DELETE', 'comments', {});
+      console.log('[CLEANUP] ✓ XSS comments cleared at midnight PST');
+    } catch (err) {
+      console.error('[CLEANUP] Failed to clear comments:', err.message);
+    }
+  });
+
+  console.log('✓ Nightly cleanup scheduled for 00:00 PST (08:00 UTC)');
 });
