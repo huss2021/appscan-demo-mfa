@@ -512,23 +512,9 @@
         const data = await res.json();
         if (res.ok) {
           const html = data.map(t => `
-            <div style="display: grid; grid-template-columns: 1fr 1fr 100px 150px; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 13px;">
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">FROM</div>
-                <div style="font-weight: 600;">${t.from_user_id ? t.from_user_id.substring(0, 8) + '...' : 'N/A'}</div>
-              </div>
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">TO</div>
-                <div style="font-weight: 600;">${t.to_account_id ? t.to_account_id.substring(0, 8) + '...' : 'N/A'}</div>
-              </div>
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">AMOUNT</div>
-                <div style="font-weight: 600; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div>
-              </div>
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">TIME</div>
-                <div style="font-weight: 600;">${new Date(t.created_at).toLocaleString()}</div>
-              </div>
+            <div style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px;">
+              <div><strong>$${parseFloat(t.amount).toFixed(2)}</strong> - ${t.status}</div>
+              <div style="color: #999; font-size: 12px;">${new Date(t.created_at).toLocaleDateString()}</div>
             </div>
           `).join('');
           document.getElementById('transactionsList').innerHTML = html || '<p style="color: #999;">No transactions yet</p>';

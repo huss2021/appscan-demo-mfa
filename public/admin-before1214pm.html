@@ -255,10 +255,7 @@
     <!-- HEADER -->
     <header>
       <h1>🔐 Admin Panel</h1>
-      <div style="display: flex; gap: 12px;">
-        <button class="logout-btn" style="background: #3498db;" onclick="goToDashboard()">← Back to Banking</button>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-      </div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
     </header>
 
     <!-- TABS -->
@@ -398,10 +395,7 @@
               <td>${user.registration_ip || 'N/A'}</td>
               <td><span class="status-badge status-active">Active</span></td>
               <td>${new Date(user.created_at).toLocaleDateString()}</td>
-              <td>
-                <button class="action-btn" style="background: #3498db; color: white; margin-right: 4px;" onclick="resetUserPassword('${user.id}', '${user.email}')">Reset PW</button>
-                <button class="action-btn delete-btn" onclick="deleteUser('${user.id}', '${user.email}')">Delete</button>
-              </td>
+              <td><button class="action-btn delete-btn" onclick="deleteUser('${user.id}')">Delete</button></td>
             </tr>
           `).join('');
           document.getElementById('usersTableBody').innerHTML = html;
@@ -471,8 +465,8 @@
       }
     }
 
-    async function deleteUser(userId, userEmail) {
-      if (!confirm(`Delete user ${userEmail}? This cannot be undone.`)) return;
+    async function deleteUser(userId) {
+      if (!confirm('Are you sure you want to delete this user?')) return;
 
       try {
         const res = await fetch(`/api/admin/users/${userId}`, {
@@ -480,33 +474,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          showMessage(`✓ User ${userEmail} has been deleted`);
-          loadUsers();
-        } else {
-          showMessage(data.error, true);
-        }
-      } catch (err) {
-        showMessage(err.message, true);
-      }
-    }
-
-    function goToDashboard() {
-      window.location.href = '/app.html';
-    }
-
-    async function resetUserPassword(userId, userEmail) {
-      const newPassword = prompt(`Enter new password for ${userEmail}:`);
-      if (!newPassword) return;
-
-      try {
-        const res = await fetch('/api/admin/users/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, newPassword })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          showMessage(`✓ Password reset for ${userEmail}`);
+          showMessage('User deleted');
           loadUsers();
         } else {
           showMessage(data.error, true);
