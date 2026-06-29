@@ -317,7 +317,8 @@
       <div class="nav-item" onclick="switchPage('transfer')">Transfer</div>
       <div class="nav-item" onclick="switchPage('transactions')">Transactions</div>
       <div class="nav-item" onclick="switchPage('search')">Search</div>
-      <div class="nav-item" onclick="switchPage('comments')">💬 Community Chat</div>
+      <div class="nav-item" onclick="switchPage('comments')">Comments</div>
+      <div class="nav-item" onclick="switchPage('api')">API</div>
       <div class="nav-item" onclick="switchPage('settings')">⚙️ Settings</div>
     </div>
 
@@ -327,7 +328,6 @@
       <div class="header">
         <h1>Dashboard</h1>
         <div class="header-right">
-          <button id="reserveBtn" style="background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 15px;" onclick="toggleReserve()">Reserve</button>
           <div class="user-info" id="userEmail">Loading...</div>
           <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
@@ -403,19 +403,23 @@
           </div>
         </div>
 
-        <!-- API PAGE (REMOVED - moved to Settings) -->
+        <!-- API PAGE -->
+        <div id="api" class="page">
+          <div class="card">
+            <h2>API Key</h2>
+            <div class="card-section">
+              <div class="section-label">Your API Key</div>
+              <div class="secret-code" id="apiKeyDisplay">Loading...</div>
+              <p style="font-size: 12px; color: #666; margin-top: 12px;">Use this key for API calls. Keep it secret!</p>
+            </div>
+          </div>
+        </div>
 
         <!-- SETTINGS PAGE -->
         <div id="settings" class="page">
           <div class="card">
             <h2>Security Settings</h2>
             
-            <div class="card-section">
-              <div class="section-label">API Access</div>
-              <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Use this key for API calls. Keep it secret!</p>
-              <div class="secret-code" id="apiKeyDisplay">Loading...</div>
-            </div>
-
             <div class="card-section">
               <div class="section-label">Two-Factor Authentication (2FA)</div>
               <div id="mfaStatus" class="mfa-status disabled">
@@ -507,9 +511,7 @@
         const res = await fetch('/api/v1/transactions');
         const data = await res.json();
         if (res.ok) {
-          // Filter to show only transactions from current user
-          const userTransactions = data.filter(t => t.from_user_id === currentUser.id);
-          const html = userTransactions.map(t => `
+          const html = data.map(t => `
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px 150px; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 13px;">
               <div>
                 <div style="color: #999; font-size: 11px; text-transform: uppercase;">FROM</div>
@@ -710,32 +712,6 @@
       window.location.href = '/';
     }
 
-    async function toggleReserve() {
-      try {
-        const res = await fetch('/api/user/reserve-status');
-        const data = await res.json();
-        
-        if (data.isReserved) {
-          showMessage('Account is already reserved for 24 hours');
-          return;
-        }
-
-        const res2 = await fetch('/api/user/reserve', { method: 'POST' });
-        const data2 = await res2.json();
-        if (res2.ok) {
-          const btn = document.getElementById('reserveBtn');
-          btn.textContent = 'In-use (24h) ⚠️';
-          btn.style.background = '#c0392b';
-          btn.disabled = true;
-          showMessage('Account reserved for 24 hours');
-        } else {
-          showMessage(data2.error, true);
-        }
-      } catch (err) {
-        showMessage(err.message, true);
-      }
-    }
-
     async function init() {
       try {
         const res = await fetch('/api/user/profile');
@@ -748,16 +724,6 @@
         document.getElementById('userEmail').textContent = user.email;
         document.getElementById('apiKeyDisplay').textContent = localStorage.getItem('apiKey') || 'N/A';
         loadAccount();
-        
-        // Check reserve status
-        const resStatus = await fetch('/api/user/reserve-status');
-        const statusData = await resStatus.json();
-        if (statusData.isReserved) {
-          const btn = document.getElementById('reserveBtn');
-          btn.textContent = 'In-use (24h) ⚠️';
-          btn.style.background = '#c0392b';
-          btn.disabled = true;
-        }
       } catch (err) {
         window.location.href = '/';
       }
