@@ -1,8 +1,8 @@
 name: HCL AppScan DAST Scan
 
 on:
-  push:
-    branches:
+  #push:
+  #  branches:
       - main        # fires when a PR is merged into main
   
   #schedule:
