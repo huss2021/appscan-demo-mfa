@@ -243,6 +243,68 @@ app.get('/api/auth/logout', (req, res) => {
   });
 });
 
+// GET /api/openapi.json - Public OpenAPI specification
+// Can be used to import into HCL AppScan, Postman, or other API tools
+app.get('/api/openapi.json', (req, res) => {
+  const openApiSpec = {
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Simple Bank API - DAST Demo",
+      "description": "Intentionally vulnerable banking application with MFA/TOTP authentication for DAST security testing. Designed for AppScan demonstrations.",
+      "version": "1.0.0",
+      "contact": {
+        "name": "HCL AppScan Demo",
+        "url": "https://appscan-demo-mfa-production.up.railway.app"
+      }
+    },
+    "servers": [
+      {
+        "url": "https://appscan-demo-mfa-production.up.railway.app",
+        "description": "Production Demo Server"
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "cookieAuth": {
+          "type": "apiKey",
+          "in": "cookie",
+          "name": "connect.sid"
+        }
+      }
+    },
+    "paths": {
+      "/api/auth/login": {"post": {"summary": "User Login", "tags": ["Authentication"], "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"email": {"type": "string"}, "password": {"type": "string"}, "totp_code": {"type": "string"}}, "required": ["email", "password"]}}}}, "responses": {"200": {"description": "Login successful"}}}},
+      "/api/user/profile": {"get": {"summary": "Get User Profile", "tags": ["User"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "User profile"}}}},
+      "/api/user/account": {"get": {"summary": "Get User Accounts", "tags": ["User"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "Array of accounts"}}}},
+      "/api/v1/transactions": {"get": {"summary": "Get Transactions", "tags": ["Transactions"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "Array of transactions"}}}},
+      "/api/transfer": {"post": {"summary": "Transfer Money", "tags": ["Transactions"], "security": [{"cookieAuth": []}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"fromAccountId": {"type": "string"}, "toAccountId": {"type": "string"}, "amount": {"type": "number"}}, "required": ["fromAccountId", "toAccountId", "amount"]}}}}, "responses": {"200": {"description": "Transfer successful"}}}},
+      "/api/search": {"get": {"summary": "Search Users", "tags": ["User"], "security": [{"cookieAuth": []}], "parameters": [{"name": "q", "in": "query", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"description": "Search results"}}}},
+      "/api/comments": {"get": {"summary": "Get Community Chat", "tags": ["Community"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "Array of comments"}}}},
+      "/api/profile/comment": {"post": {"summary": "Post Comment", "tags": ["Community"], "security": [{"cookieAuth": []}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"content": {"type": "string"}}, "required": ["content"]}}}}, "responses": {"200": {"description": "Comment posted"}}}},
+      "/api/mfa/enable": {"post": {"summary": "Enable MFA", "tags": ["Security"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "MFA secret generated"}}}},
+      "/api/mfa/verify": {"post": {"summary": "Verify MFA", "tags": ["Security"], "security": [{"cookieAuth": []}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"totp_code": {"type": "string"}}, "required": ["totp_code"]}}}}, "responses": {"200": {"description": "MFA enabled"}}}},
+      "/api/mfa/disable": {"post": {"summary": "Disable MFA", "tags": ["Security"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "MFA disabled"}}}},
+      "/api/mfa/status": {"get": {"summary": "Get MFA Status", "tags": ["Security"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "MFA status"}}}},
+      "/api/user/reserve": {"post": {"summary": "Reserve Account", "tags": ["User"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "Account reserved"}}}},
+      "/api/user/un-reserve": {"post": {"summary": "Clear Reservation", "tags": ["User"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "Reservation cleared"}}}},
+      "/api/user/api-key": {"get": {"summary": "Get API Key", "tags": ["User"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "API key"}}}},
+      "/api/user/rotate-api-key": {"post": {"summary": "Rotate API Key", "tags": ["User"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "New API key"}}}},
+      "/api/auth/logout": {"get": {"summary": "User Logout", "tags": ["Authentication"], "security": [{"cookieAuth": []}], "responses": {"200": {"description": "Logout successful"}}}}
+    },
+    "tags": [
+      {"name": "Authentication", "description": "User login and logout"},
+      {"name": "User", "description": "User profile, accounts, and settings"},
+      {"name": "Transactions", "description": "Transaction history and transfers"},
+      {"name": "Community", "description": "Community chat and comments"},
+      {"name": "Security", "description": "MFA and security settings"}
+    ]
+  };
+  
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'inline; filename="simple-bank-openapi-spec.json"');
+  res.json(openApiSpec);
+});
+
 // ============================================
 // PROTECTED ROUTES
 // ============================================
