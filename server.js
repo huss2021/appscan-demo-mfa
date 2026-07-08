@@ -382,7 +382,18 @@ app.post('/api/profile/comment', requireAuth, async (req, res) => {
 app.get('/api/comments', requireAuth, async (req, res) => {
   try {
     const comments = await supabaseRest('GET', 'comments', {});
-    return res.json(comments || []);
+    const users = await supabaseRest('GET', 'users', {});
+    
+    // Enrich comments with full names
+    const enrichedComments = comments.map(comment => {
+      const user = users.find(u => u.id === comment.user_id);
+      return {
+        ...comment,
+        user_full_name: user?.full_name || 'Unknown'
+      };
+    });
+    
+    return res.json(enrichedComments || []);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
