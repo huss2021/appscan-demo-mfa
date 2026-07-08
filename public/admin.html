@@ -335,6 +335,7 @@
               </tbody>
             </table>
           </div>
+          <div id="trafficPagination" style="margin-top: 12px;"></div>
         </div>
       </div>
 
@@ -423,25 +424,92 @@
       }
     }
 
+    let trafficCurrentPage = 1;
+    const TRAFFIC_PER_PAGE = 50;
+
     async function loadTraffic() {
       try {
         const res = await fetch('/api/admin/traffic');
         const data = await res.json();
         if (res.ok) {
-          const html = data.map(log => `
-            <tr>
-              <td>${new Date(log.timestamp).toLocaleString()}</td>
-              <td>${log.user_email || 'Anonymous'}</td>
-              <td>${log.ip_address}</td>
-              <td>${log.method}</td>
-              <td>${log.path}</td>
-              <td>${log.status_code}</td>
-            </tr>
-          `).join('');
-          document.getElementById('trafficTableBody').innerHTML = html || '<tr><td colspan="6" style="text-align: center; color: #999;">No traffic data</td></tr>';
+          // Store all traffic data for pagination
+          window.allTraffic = data;
+          trafficCurrentPage = 1;
+          
+          renderTrafficPage();
+          renderTrafficPagination(data.length);
         }
       } catch (err) {
         showMessage(err.message, true);
+      }
+    }
+
+    function renderTrafficPage() {
+      if (!window.allTraffic || window.allTraffic.length === 0) {
+        document.getElementById('trafficTableBody').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No traffic data</td></tr>';
+        return;
+      }
+
+      const start = (trafficCurrentPage - 1) * TRAFFIC_PER_PAGE;
+      const end = start + TRAFFIC_PER_PAGE;
+      const pageTraffic = window.allTraffic.slice(start, end);
+
+      const html = pageTraffic.map(log => `
+        <tr>
+          <td>${new Date(log.timestamp).toLocaleString()}</td>
+          <td>${log.user_email || 'Anonymous'}</td>
+          <td>${log.ip_address}</td>
+          <td>${log.method}</td>
+          <td>${log.path}</td>
+          <td>${log.status_code}</td>
+        </tr>
+      `).join('');
+      document.getElementById('trafficTableBody').innerHTML = html;
+    }
+
+    function renderTrafficPagination(totalLogs) {
+      const totalPages = Math.ceil(totalLogs / TRAFFIC_PER_PAGE);
+      
+      if (totalPages <= 1) {
+        document.getElementById('trafficPagination').innerHTML = '';
+        return;
+      }
+
+      let paginationHtml = `<div style="text-align: center; font-size: 12px; color: #666;">`;
+      
+      // Previous button
+      if (trafficCurrentPage > 1) {
+        paginationHtml += `<button type="button" onclick="prevTrafficPage()" style="background: #3498db; color: white; border: none; padding: 6px 12px; margin: 0 4px; border-radius: 3px; cursor: pointer; font-size: 12px;">← Previous</button>`;
+      }
+
+      // Page info
+      paginationHtml += `<span style="margin: 0 12px;">Page ${trafficCurrentPage} of ${totalPages} (${totalLogs} total logs)</span>`;
+
+      // Next button
+      if (trafficCurrentPage < totalPages) {
+        paginationHtml += `<button type="button" onclick="nextTrafficPage()" style="background: #3498db; color: white; border: none; padding: 6px 12px; margin: 0 4px; border-radius: 3px; cursor: pointer; font-size: 12px;">Next →</button>`;
+      }
+
+      paginationHtml += `</div>`;
+      document.getElementById('trafficPagination').innerHTML = paginationHtml;
+    }
+
+    function nextTrafficPage() {
+      const totalPages = Math.ceil(window.allTraffic.length / TRAFFIC_PER_PAGE);
+      if (trafficCurrentPage < totalPages) {
+        trafficCurrentPage++;
+        renderTrafficPage();
+        renderTrafficPagination(window.allTraffic.length);
+        document.getElementById('trafficTableBody').scrollIntoView({behavior: 'smooth'});
+      }
+    }
+
+    function prevTrafficPage() {
+      if (trafficCurrentPage > 1) {
+        trafficCurrentPage--;
+        renderTrafficPage();
+        renderTrafficPagination(window.allTraffic.length);
+        document.getElementById('trafficTableBody').scrollIntoView({behavior: 'smooth'});
       }
     }
 

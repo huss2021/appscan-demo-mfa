@@ -326,7 +326,7 @@
         <div class="header-right">
           <button id="adminBtn" style="display: none; background: #9b59b6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;" onclick="goToAdmin()">🔐 Admin</button>
           <button id="reserveBtn" style="background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; margin-left: 10px; margin-right: 15px;" onclick="toggleReserve()">Reserve</button>
-          <div class="user-info" id="userEmail">Loading...</div>
+          <div class="user-info" id="userInfo">Loading...</div>
           <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
       </div>
@@ -433,6 +433,7 @@
               <button type="submit">Post Comment</button>
             </form>
             <div id="commentsList" style="margin-top: 20px;"></div>
+            <div id="commentsPagination" style="margin-top: 12px;"></div>
           </div>
         </div>
 
@@ -792,28 +793,99 @@ curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/auth/logout \
       }
     }
 
+    let commentsCurrentPage = 1;
+    const COMMENTS_PER_PAGE = 30;
+
     async function loadComments() {
       try {
         const res = await fetch('/api/comments');
         const data = await res.json();
         if (res.ok && data && Array.isArray(data)) {
-          // Sort by newest first (descending)
-          const sortedComments = data.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          // Sort by newest first (descending) and filter to last 30 days
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          const sortedComments = data
+            .filter(c => new Date(c.created_at) > thirtyDaysAgo)
+            .slice()
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           
-          const html = sortedComments.map(c => `
-            <div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #1a5f7a;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div><strong>From: ${c.user_full_name}</strong></div>
-                <div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleString()}</div>
-              </div>
-              <div style="color: #333;">${c.content}</div>
-            </div>
-          `).join('');
-          document.getElementById('commentsList').innerHTML = html || '<p style="color: #999;">No comments yet</p>';
+          // Store for pagination
+          window.allComments = sortedComments;
+          commentsCurrentPage = 1;
+          
+          renderCommentsPage();
+          renderCommentsPagination(sortedComments.length);
         }
       } catch (err) {
         console.error('Load comments error:', err);
         document.getElementById('commentsList').innerHTML = '<p style="color: #e74c3c;">Error loading comments</p>';
+      }
+    }
+
+    function renderCommentsPage() {
+      if (!window.allComments || window.allComments.length === 0) {
+        document.getElementById('commentsList').innerHTML = '<p style="color: #999;">No comments yet</p>';
+        return;
+      }
+
+      const start = (commentsCurrentPage - 1) * COMMENTS_PER_PAGE;
+      const end = start + COMMENTS_PER_PAGE;
+      const pageComments = window.allComments.slice(start, end);
+
+      const html = pageComments.map(c => `
+        <div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #1a5f7a;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div><strong>From: ${c.user_full_name}</strong></div>
+            <div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleString()}</div>
+          </div>
+          <div style="color: #333;">${c.content}</div>
+        </div>
+      `).join('');
+      document.getElementById('commentsList').innerHTML = html;
+    }
+
+    function renderCommentsPagination(totalComments) {
+      const totalPages = Math.ceil(totalComments / COMMENTS_PER_PAGE);
+      
+      if (totalPages <= 1) {
+        document.getElementById('commentsPagination').innerHTML = '';
+        return;
+      }
+
+      let paginationHtml = `<div style="margin-top: 16px; text-align: center; font-size: 12px; color: #666;">`;
+      
+      // Previous button
+      if (commentsCurrentPage > 1) {
+        paginationHtml += `<button type="button" onclick="prevCommentsPage()" style="background: #1a5f7a; color: white; border: none; padding: 6px 12px; margin: 0 4px; border-radius: 3px; cursor: pointer; font-size: 12px;">← Previous</button>`;
+      }
+
+      // Page info
+      paginationHtml += `<span style="margin: 0 12px;">Page ${commentsCurrentPage} of ${totalPages} (${totalComments} total)</span>`;
+
+      // Next button
+      if (commentsCurrentPage < totalPages) {
+        paginationHtml += `<button type="button" onclick="nextCommentsPage()" style="background: #1a5f7a; color: white; border: none; padding: 6px 12px; margin: 0 4px; border-radius: 3px; cursor: pointer; font-size: 12px;">Next →</button>`;
+      }
+
+      paginationHtml += `</div>`;
+      document.getElementById('commentsPagination').innerHTML = paginationHtml;
+    }
+
+    function nextCommentsPage() {
+      const totalPages = Math.ceil(window.allComments.length / COMMENTS_PER_PAGE);
+      if (commentsCurrentPage < totalPages) {
+        commentsCurrentPage++;
+        renderCommentsPage();
+        renderCommentsPagination(window.allComments.length);
+        document.getElementById('commentsList').scrollIntoView({behavior: 'smooth'});
+      }
+    }
+
+    function prevCommentsPage() {
+      if (commentsCurrentPage > 1) {
+        commentsCurrentPage--;
+        renderCommentsPage();
+        renderCommentsPagination(window.allComments.length);
+        document.getElementById('commentsList').scrollIntoView({behavior: 'smooth'});
       }
     }
 
@@ -1299,7 +1371,7 @@ curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/auth/logout \
         }
         const user = await res.json();
         currentUser = user;
-        document.getElementById('userEmail').textContent = user.email;
+        document.getElementById('userInfo').textContent = `${user.full_name || 'User'} (${user.email})`;
         loadAccount();
         
         const adminRes = await fetch('/api/admin/check');
