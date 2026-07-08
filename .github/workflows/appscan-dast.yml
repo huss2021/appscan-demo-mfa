@@ -1,8 +1,12 @@
 name: HCL AppScan DAST Scan
 
 on:
-  schedule:
-    - cron: '0 2 * * *'   # 2 AM daily
+  push:
+    branches:
+      - main        # fires when a PR is merged into main
+  
+  #schedule:
+  #  - cron: '0 2 * * *'   # 2 AM daily
   workflow_dispatch:        # allows manual trigger from Actions tab
 
 jobs:
