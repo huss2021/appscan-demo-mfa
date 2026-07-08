@@ -455,7 +455,73 @@
             </div>
 
             <div class="card-section">
-              <div class="section-label">Two-Factor Authentication (2FA)</div>
+              <div class="section-label">API Testing Tips</div>
+              <p style="font-size: 13px; color: #666; margin-bottom: 16px;">Use these endpoints to test the API. Make sure to include your API key in the Authorization header (if applicable).</p>
+              
+              <div style="background: #f5f5f5; border-radius: 4px; padding: 16px; margin-bottom: 16px; font-size: 13px; font-family: monospace;">
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/user/profile</div>
+                  <div style="color: #666; margin-bottom: 8px;">Get current user's profile information</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/user/profile \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/user/account</div>
+                  <div style="color: #666; margin-bottom: 8px;">Get all accounts for current user (checking and savings)</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/user/account \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/v1/transactions</div>
+                  <div style="color: #666; margin-bottom: 8px;">Get all transactions for current user</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/v1/transactions \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/search?q=EMAIL_OR_NAME</div>
+                  <div style="color: #666; margin-bottom: 8px;">Search for users by email or name</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET "https://appscan-demo-mfa-production.up.railway.app/api/search?q=demo-user" \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/transfer</div>
+                  <div style="color: #666; margin-bottom: 8px;">Transfer money between accounts</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/transfer \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID" \<br/>  -H "Content-Type: application/json" \<br/>  -d '{"fromAccountId":"ACCOUNT_ID","toAccountId":"ACCOUNT_ID","amount":100}'</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/comments</div>
+                  <div style="color: #666; margin-bottom: 8px;">Get all community chat comments</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/comments \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/profile/comment</div>
+                  <div style="color: #666; margin-bottom: 8px;">Post a comment to community chat</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/profile/comment \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID" \<br/>  -H "Content-Type: application/json" \<br/>  -d '{"content":"Your comment here"}'</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/user/reserve</div>
+                  <div style="color: #666; margin-bottom: 8px;">Reserve your account for 24 hours (demo mode)</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/user/reserve \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/mfa/enable</div>
+                  <div style="color: #666; margin-bottom: 8px;">Enable two-factor authentication and get QR code</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/mfa/enable \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                </div>
+
+                <div>
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/mfa/verify</div>
+                  <div style="color: #666; margin-bottom: 8px;">Verify TOTP code to enable 2FA</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/mfa/verify \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID" \<br/>  -H "Content-Type: application/json" \<br/>  -d '{"totp_code":"123456"}'</div>
+                </div>
+              </div>
+              
+              <p style="font-size: 12px; color: #999;">💡 <strong>Tip:</strong> All endpoints require an active session. For API testing tools like Postman or curl, ensure cookies are sent with requests or use the appropriate authentication method.</p>
+            </div>
               <div id="mfaStatus" class="mfa-status disabled">
                 MFA is currently <strong>disabled</strong>
               </div>
@@ -586,26 +652,29 @@
           
           const html = userTransactions.map(t => {
             const fromName = t.from_user_name || 'Unknown';
-            const toAccountShort = t.to_account_number.substring(0, 4);
+            const toName = t.to_user_name || 'Unknown';
+            const fromAccountLast6 = t.from_user_account_number.slice(-6);
+            const toAccountLast6 = t.to_account_number.slice(-6);
             
             return `
-              <div style="padding: 16px; border-bottom: 1px solid #eee; margin-bottom: 12px; background: #f9f9f9; border-radius: 4px;">
-                <div style="display: grid; grid-template-columns: 200px 200px 150px; gap: 24px; margin-bottom: 12px;">
+              <div style="padding: 16px; border-bottom: 2px solid #e8e8e8; margin-bottom: 12px; background: white; border-radius: 4px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 150px; gap: 24px; margin-bottom: 12px;">
                   <div>
-                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 6px;">FROM</div>
-                    <div style="font-weight: 600; font-size: 14px;">${fromName}</div>
-                    <div style="color: #666; font-size: 12px; margin-top: 4px;">(${toAccountShort}...)</div>
+                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; letter-spacing: 1px;">FROM</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #0a2342;">${fromName}</div>
+                    <div style="color: #666; font-size: 13px; margin-top: 4px; font-family: monospace;">(...${fromAccountLast6})</div>
                   </div>
                   <div>
-                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 6px;">TO ACCOUNT</div>
-                    <div style="font-weight: 600; font-size: 14px;">${toAccountShort}...</div>
+                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; letter-spacing: 1px;">TO</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #0a2342;">${toName}</div>
+                    <div style="color: #666; font-size: 13px; margin-top: 4px; font-family: monospace;">(...${toAccountLast6})</div>
                   </div>
                   <div>
-                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 6px;">AMOUNT</div>
-                    <div style="font-weight: 600; font-size: 16px; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div>
+                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; letter-spacing: 1px;">AMOUNT</div>
+                    <div style="font-weight: 600; font-size: 18px; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div>
                   </div>
                 </div>
-                <div style="color: #999; font-size: 12px;">${new Date(t.created_at).toLocaleString()}</div>
+                <div style="color: #999; font-size: 12px; padding-top: 12px; border-top: 1px solid #eee;">${new Date(t.created_at).toLocaleString()}</div>
               </div>
             `;
           }).join('');
@@ -826,7 +895,14 @@
             <div style="padding: 12px; border: 1px solid #eee; margin-top: 8px; border-radius: 4px; background: #f9f9f9;">
               <div><strong>${u.email}</strong></div>
               <div style="color: #666; font-size: 13px; margin-top: 4px;">${u.full_name}</div>
-              <div style="color: #999; font-size: 12px; margin-top: 8px; font-family: monospace;">Account ID: ${u.checking_account_id}</div>
+              <div style="color: #999; font-size: 12px; margin-top: 8px; font-family: monospace; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span>Checking: ${u.checking_account_id}</span>
+                <button type="button" onclick="copyToClipboard('${u.checking_account_id}')" style="background: none; border: none; cursor: pointer; padding: 4px; color: #1a5f7a; font-size: 16px; font-weight: normal;" title="Copy Checking Account ID">📋</button>
+              </div>
+              <div style="color: #999; font-size: 12px; font-family: monospace; display: flex; align-items: center; justify-content: space-between;">
+                <span>Savings: ${u.savings_account_id}</span>
+                <button type="button" onclick="copyToClipboard('${u.savings_account_id}')" style="background: none; border: none; cursor: pointer; padding: 4px; color: #1a5f7a; font-size: 16px; font-weight: normal;" title="Copy Savings Account ID">📋</button>
+              </div>
             </div>
           `).join('');
           document.getElementById('searchResults').innerHTML = html || '<p style="color: #999; margin-top: 12px;">No results found</p>';
@@ -836,6 +912,14 @@
       } catch (err) {
         showMessage(err.message, true);
       }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showMessage('✓ Copied to clipboard!');
+      }).catch(() => {
+        showMessage('Failed to copy', true);
+      });
     }
 
     async function handleComment(event) {

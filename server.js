@@ -300,24 +300,27 @@ app.get('/api/search', requireAuth, async (req, res) => {
       (user.full_name && user.full_name.toLowerCase().includes(searchLower))
     );
 
-    // For each user, get their checking account ID
+    // For each user, get their checking and savings account IDs
     const usersWithAccounts = await Promise.all(
       results.map(async (user) => {
         try {
           const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: user.id } });
           const checkingAccount = accounts.find(a => a.account_type === 'Checking');
+          const savingsAccount = accounts.find(a => a.account_type === 'Savings');
           return {
             id: user.id,
             email: user.email,
             full_name: user.full_name || 'N/A',
-            checking_account_id: checkingAccount?.id || 'N/A'
+            checking_account_id: checkingAccount?.id || 'N/A',
+            savings_account_id: savingsAccount?.id || 'N/A'
           };
         } catch {
           return {
             id: user.id,
             email: user.email,
             full_name: user.full_name || 'N/A',
-            checking_account_id: 'N/A'
+            checking_account_id: 'N/A',
+            savings_account_id: 'N/A'
           };
         }
       })
@@ -484,11 +487,14 @@ app.get('/api/v1/transactions', requireAuth, async (req, res) => {
     const enrichedTxns = txns.map(txn => {
       const fromUser = users.find(u => u.id === txn.from_user_id);
       const toAccount = accounts.find(a => a.id === txn.to_account_id);
+      const toUser = toAccount ? users.find(u => u.id === toAccount.user_id) : null;
       
       return {
         ...txn,
         from_user_name: fromUser?.full_name || 'Unknown',
-        to_account_number: toAccount?.account_number || 'N/A'
+        from_user_account_number: fromUser ? accounts.find(a => a.user_id === fromUser.id && a.account_type === 'Checking')?.account_number || 'N/A' : 'N/A',
+        to_account_number: toAccount?.account_number || 'N/A',
+        to_user_name: toUser?.full_name || 'Unknown'
       };
     });
     
