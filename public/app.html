@@ -444,6 +444,7 @@
               <div class="section-label">API Access</div>
               <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Use this key for API calls. Keep it secret!</p>
               <div class="secret-code" id="apiKeyDisplay">Loading...</div>
+              <button type="button" onclick="rotateApiKey()" style="margin-top: 12px; background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;">🔄 Rotate API Key</button>
             </div>
 
             <div class="card-section">
@@ -575,18 +576,36 @@
         const data = await res.json();
         if (res.ok) {
           const userTransactions = data.filter(t => t.from_user_id === currentUser.id);
-          const html = userTransactions.map(t => `
-            <div style="display: grid; grid-template-columns: 1fr 1fr 100px 150px; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 13px;">
-              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">FROM</div><div style="font-weight: 600;">${t.from_user_id ? t.from_user_id.substring(0, 8) + '...' : 'N/A'}</div></div>
-              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">TO</div><div style="font-weight: 600;">${t.to_account_id ? t.to_account_id.substring(0, 8) + '...' : 'N/A'}</div></div>
-              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">AMOUNT</div><div style="font-weight: 600; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div></div>
-              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">TIME</div><div style="font-weight: 600;">${new Date(t.created_at).toLocaleString()}</div></div>
-            </div>
-          `).join('');
+          
+          const html = userTransactions.map(t => {
+            const fromName = t.from_user_name || 'Unknown';
+            const toAccountShort = t.to_account_number.substring(0, 4);
+            
+            return `
+              <div style="display: grid; grid-template-columns: 1fr 1fr 100px 150px; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 13px;">
+                <div>
+                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">FROM</div>
+                  <div style="font-weight: 600;">${fromName} (${toAccountShort}...)</div>
+                </div>
+                <div>
+                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">TO</div>
+                  <div style="font-weight: 600;">${toAccountShort}...</div>
+                </div>
+                <div>
+                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">AMOUNT</div>
+                  <div style="font-weight: 600; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div>
+                </div>
+                <div>
+                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">TIME</div>
+                  <div style="font-weight: 600;">${new Date(t.created_at).toLocaleString()}</div>
+                </div>
+              </div>
+            `;
+          }).join('');
           document.getElementById('transactionsList').innerHTML = html || '<p style="color: #999;">No transactions yet</p>';
         }
       } catch (err) {
-        showMessage(err.message, true);
+        console.error('Load transactions error:', err);
       }
     }
 
@@ -600,9 +619,11 @@
           
           const html = sortedComments.map(c => `
             <div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #1a5f7a;">
-              <div><strong>${c.user_id}</strong></div>
-              <div style="margin-top: 8px; color: #333;">${c.content}</div>
-              <div style="color: #999; font-size: 12px; margin-top: 6px;">${new Date(c.created_at).toLocaleString()}</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div><strong>From: ${c.user_id}</strong></div>
+                <div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleString()}</div>
+              </div>
+              <div style="color: #333;">${c.content}</div>
             </div>
           `).join('');
           document.getElementById('commentsList').innerHTML = html || '<p style="color: #999;">No comments yet</p>';
@@ -615,6 +636,7 @@
 
     async function loadMFAStatus() {
       try {
+        // Load MFA status
         const res = await fetch('/api/mfa/status');
         const data = await res.json();
         if (res.ok) {
@@ -635,8 +657,34 @@
             document.getElementById('mfaDisableForm').classList.add('hidden');
           }
         }
+        
+        // Load API key
+        const apiRes = await fetch('/api/user/api-key');
+        const apiData = await apiRes.json();
+        if (apiRes.ok && apiData.api_key) {
+          document.getElementById('apiKeyDisplay').textContent = apiData.api_key;
+        }
       } catch (err) {
         showMessage(err.message, true);
+      }
+    }
+
+    async function rotateApiKey() {
+      if (!confirm('Are you sure? This will generate a new API key and invalidate the old one.')) {
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/user/rotate-api-key', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.api_key) {
+          document.getElementById('apiKeyDisplay').textContent = data.api_key;
+          showMessage('✓ API key rotated! Copy your new key and keep it safe.');
+        } else {
+          showMessage('Failed to rotate API key', true);
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message, true);
       }
     }
 
@@ -859,7 +907,17 @@
         const user = await res.json();
         currentUser = user;
         document.getElementById('userEmail').textContent = user.email;
-        document.getElementById('apiKeyDisplay').textContent = localStorage.getItem('apiKey') || 'N/A';
+        
+        // Load API key from server
+        try {
+          const apiRes = await fetch('/api/user/api-key');
+          const apiData = await apiRes.json();
+          if (apiRes.ok && apiData.api_key) {
+            document.getElementById('apiKeyDisplay').textContent = apiData.api_key;
+          }
+        } catch (err) {
+          document.getElementById('apiKeyDisplay').textContent = 'N/A';
+        }
         loadAccount();
         
         const adminRes = await fetch('/api/admin/check');
