@@ -2,8 +2,8 @@ name: HCL AppScan DAST Scan
 
 on:
   #push:
-  #  branches:
-      - main        # fires when a PR is merged into main
+  #  branches: fires when a PR is merged into main
+  #    - main        
   
   #schedule: 2 AM daily
   #  - cron: '0 2 * * *'   
