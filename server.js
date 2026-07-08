@@ -391,22 +391,33 @@ app.get('/api/comments', requireAuth, async (req, res) => {
 // POST /api/transfer - CSRF + IDOR vulnerable
 app.post('/api/transfer', requireAuth, async (req, res) => {
   try {
-    const { toAccountId, amount } = req.body;
-    if (!toAccountId || !amount) {
-      return res.status(400).json({ error: 'Account and amount required' });
+    const { toAccountId, amount, fromAccountId } = req.body;
+    if (!toAccountId || !amount || !fromAccountId) {
+      return res.status(400).json({ error: 'Account, amount, and from account required' });
     }
 
-    const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: req.session.userId } });
-    if (!accounts || accounts.length === 0 || accounts[0].balance < amount) {
+    // Get the FROM account and verify it belongs to user
+    const fromAccount = await supabaseRest('GET', 'accounts', { where: { id: fromAccountId } });
+    if (!fromAccount || fromAccount.length === 0) {
+      return res.status(400).json({ error: 'Account not found' });
+    }
+    
+    if (fromAccount[0].user_id !== req.session.userId) {
+      return res.status(403).json({ error: 'Cannot transfer from another user account' });
+    }
+
+    if (fromAccount[0].balance < amount) {
       return res.status(400).json({ error: 'Insufficient balance' });
     }
 
-    const newBalance = accounts[0].balance - amount;
+    // Deduct from source account
+    const newBalance = fromAccount[0].balance - amount;
     await supabaseRest('PATCH', 'accounts', {
       update: { balance: newBalance },
-      where: { id: accounts[0].id }
+      where: { id: fromAccountId }
     });
 
+    // Add to recipient account
     const recipientAccounts = await supabaseRest('GET', 'accounts', { where: { id: toAccountId } });
     if (recipientAccounts && recipientAccounts.length > 0) {
       await supabaseRest('PATCH', 'accounts', {
@@ -415,6 +426,7 @@ app.post('/api/transfer', requireAuth, async (req, res) => {
       });
     }
 
+    // Create transaction record
     const txn = await supabaseRest('POST', 'transactions', {
       insert: {
         from_user_id: req.session.userId,

@@ -184,7 +184,16 @@
       font-family: inherit;
     }
 
-    input:focus, textarea:focus {
+    select {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+    }
+
+    input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: #1a5f7a;
       box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.1);
@@ -377,15 +386,24 @@
           <div class="card">
             <h2>Transfer Funds</h2>
             <form onsubmit="handleTransfer(event)">
-              <input type="text" placeholder="Recipient Account ID (copy from Account tab)" id="recipientId" required />
-              <input type="number" placeholder="Amount" id="transferAmount" step="0.01" required />
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label style="display: block; font-size: 12px; color: #999; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">From Account</label>
+                  <select id="fromAccount" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; font-family: inherit;" required>
+                    <option value="">Select account...</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 12px; color: #999; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">Amount</label>
+                  <input type="number" placeholder="Amount" id="transferAmount" step="0.01" style="width: 100%;" required />
+                </div>
+              </div>
+              <div>
+                <label style="display: block; font-size: 12px; color: #999; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">To Account ID</label>
+                <input type="text" placeholder="copy from Search Tab" id="recipientId" style="width: 100%;" required />
+              </div>
               <button type="submit">Transfer</button>
             </form>
-            
-            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #eee;">
-              <p style="font-size: 12px; text-transform: uppercase; color: #999; font-weight: 600; margin-bottom: 12px;">Your Accounts</p>
-              <div id="accountsList" style="font-size: 13px; line-height: 1.8;">Loading accounts...</div>
-            </div>
           </div>
         </div>
 
@@ -535,17 +553,19 @@
       try {
         const res = await fetch('/api/user/account');
         const data = await res.json();
-        if (res.ok) {
-          const html = data.map(a => `
-            <div style="background: #f9f9f9; padding: 12px; border-radius: 4px; margin-bottom: 8px;">
-              <div><strong>${a.account_type}</strong> - ${a.account_number}</div>
-              <div style="color: #666; font-size: 12px; margin-top: 4px; font-family: monospace;">ID: ${a.id}</div>
-            </div>
-          `).join('');
-          document.getElementById('accountsList').innerHTML = html || 'No accounts found';
+        if (res.ok && data && Array.isArray(data)) {
+          // Populate FROM dropdown
+          const select = document.getElementById('fromAccount');
+          select.innerHTML = '<option value="">Select account...</option>';
+          data.forEach(account => {
+            const option = document.createElement('option');
+            option.value = account.id;
+            option.textContent = `${account.account_type} - ${account.account_number} ($${parseFloat(account.balance).toFixed(2)})`;
+            select.appendChild(option);
+          });
         }
       } catch (err) {
-        document.getElementById('accountsList').innerHTML = '<p style="color: #e74c3c;">Error loading accounts</p>';
+        showMessage('Error loading accounts', true);
       }
     }
 
@@ -574,12 +594,22 @@
       try {
         const res = await fetch('/api/comments');
         const data = await res.json();
-        if (res.ok) {
-          const html = data.map(c => `<div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px;"><div><strong>${c.user_id}</strong></div><div>${c.content}</div><div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleDateString()}</div></div>`).join('');
+        if (res.ok && data && Array.isArray(data)) {
+          // Sort by newest first (descending)
+          const sortedComments = data.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          
+          const html = sortedComments.map(c => `
+            <div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #1a5f7a;">
+              <div><strong>${c.user_id}</strong></div>
+              <div style="margin-top: 8px; color: #333;">${c.content}</div>
+              <div style="color: #999; font-size: 12px; margin-top: 6px;">${new Date(c.created_at).toLocaleString()}</div>
+            </div>
+          `).join('');
           document.getElementById('commentsList').innerHTML = html || '<p style="color: #999;">No comments yet</p>';
         }
       } catch (err) {
-        showMessage(err.message, true);
+        console.error('Load comments error:', err);
+        document.getElementById('commentsList').innerHTML = '<p style="color: #e74c3c;">Error loading comments</p>';
       }
     }
 
@@ -674,13 +704,20 @@
 
     async function handleTransfer(event) {
       event.preventDefault();
+      const fromAccountId = document.getElementById('fromAccount').value;
       const toAccountId = document.getElementById('recipientId').value;
       const amount = document.getElementById('transferAmount').value;
+      
+      if (!fromAccountId) {
+        showMessage('Please select a FROM account', true);
+        return;
+      }
+      
       try {
         const res = await fetch('/api/transfer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ toAccountId, amount: parseFloat(amount) })
+          body: JSON.stringify({ toAccountId, amount: parseFloat(amount), fromAccountId })
         });
         
         let data;
@@ -694,6 +731,7 @@
           showMessage('✓ Transfer successful!');
           document.getElementById('recipientId').value = '';
           document.getElementById('transferAmount').value = '';
+          document.getElementById('fromAccount').value = '';
           setTimeout(() => loadAccount(), 1000);
         } else {
           showMessage(data.error || 'Transfer failed', true);
@@ -729,6 +767,11 @@
     async function handleComment(event) {
       event.preventDefault();
       const comment = document.getElementById('commentText').value;
+      if (!comment.trim()) {
+        showMessage('Comment cannot be empty', true);
+        return;
+      }
+      
       try {
         const res = await fetch('/api/profile/comment', {
           method: 'POST',
@@ -740,18 +783,19 @@
         try {
           data = await res.json();
         } catch {
-          data = { error: 'Invalid response' };
+          data = { success: true };
         }
         
-        if (res.ok && (data.success || data.comment)) {
+        if (res.ok || data.success) {
           showMessage('✓ Comment posted!');
           document.getElementById('commentText').value = '';
-          loadComments();
+          // Always reload comments regardless of response
+          setTimeout(() => loadComments(), 500);
         } else {
           showMessage(data.error || 'Failed to post comment', true);
         }
       } catch (err) {
-        showMessage(err.message, true);
+        showMessage('Error: ' + err.message, true);
       }
     }
 
