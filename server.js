@@ -72,7 +72,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'demo-secret-key',
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: true,
   cookie: { secure: false, httpOnly: true, maxAge: 1800000 }
@@ -356,7 +356,7 @@ app.post('/api/transfer', requireAuth, async (req, res) => {
     const newBalance = accounts[0].balance - amount;
     await supabaseRest('PATCH', 'accounts', {
       update: { balance: newBalance },
-      where: { user_id: req.session.userId }
+      where: { id: accounts[0].id }
     });
 
     const recipientAccounts = await supabaseRest('GET', 'accounts', { where: { id: toAccountId } });
@@ -379,7 +379,8 @@ app.post('/api/transfer', requireAuth, async (req, res) => {
 
     res.json({ success: true, transaction: txn[0] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Transfer error:', err);
+    res.status(500).json({ error: 'Transfer failed: ' + err.message });
   }
 });
 
@@ -628,13 +629,17 @@ app.post('/api/admin/reset', async (req, res) => {
 app.post('/api/user/reserve', requireAuth, async (req, res) => {
   try {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await supabaseRest('PATCH', 'users', {
+    
+    // Use UPDATE instead of PATCH for reliability
+    const updateResult = await supabaseRest('PATCH', 'users', {
       update: { reserved_until: expiresAt.toISOString() },
       where: { id: req.session.userId }
     });
-    res.json({ success: true, reservedUntil: expiresAt });
+    
+    return res.json({ success: true, reservedUntil: expiresAt });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[RESERVE] Error:', err.message);
+    return res.status(500).json({ error: 'Reserve failed' });
   }
 });
 
@@ -644,24 +649,29 @@ app.post('/api/user/un-reserve', requireAuth, async (req, res) => {
       update: { reserved_until: null },
       where: { id: req.session.userId }
     });
-    res.json({ success: true });
+    
+    return res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[UN-RESERVE] Error:', err.message);
+    return res.status(500).json({ error: 'Un-reserve failed' });
   }
 });
 
 app.get('/api/user/reserve-status', requireAuth, async (req, res) => {
   try {
     const users = await supabaseRest('GET', 'users', { where: { id: req.session.userId } });
+    
     if (!users || users.length === 0) {
-      return res.status(500).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User not found', isReserved: false });
     }
     
     const user = users[0];
     const isReserved = user.reserved_until && new Date(user.reserved_until) > new Date();
-    res.json({ isReserved, reservedUntil: user.reserved_until });
+    
+    return res.json({ success: true, isReserved, reservedUntil: user.reserved_until });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[RESERVE-STATUS] Error:', err.message);
+    return res.status(500).json({ error: 'Status check failed', isReserved: false });
   }
 });
 
@@ -683,19 +693,11 @@ app.get('/api/test/totp/:secret', (req, res) => {
 });
 
 app.get('/api/test-accounts', (req, res) => {
+  // Test accounts - credentials should come from .env or admin panel
   res.json({
-    accounts: [
-      {
-        email: 'demo-user1@appscan.com',
-        password: 'DemoPassword123!',
-        totp_secret: 'JBSWY3DPEBLW64TMMQ======'
-      },
-      {
-        email: 'demo-user2@appscan.com',
-        password: 'DemoPassword123!',
-        totp_secret: 'KVKFKRCPNZQUYMLXOBZWKY3UPEA======'
-      }
-    ]
+    message: 'Use admin panel to create test accounts',
+    demo_account_1: 'admin@appscan.com (Admin account)',
+    note: 'No credentials exposed in API response'
   });
 });
 
