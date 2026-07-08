@@ -466,7 +466,22 @@ app.get('/api/v1/transactions', requireAuth, async (req, res) => {
   try {
     const userId = req.query.user_id || req.session.userId;
     const txns = await supabaseRest('GET', 'transactions', {});
-    res.json(txns || []);
+    const users = await supabaseRest('GET', 'users', {});
+    const accounts = await supabaseRest('GET', 'accounts', {});
+    
+    // Enrich transactions with user names and account numbers
+    const enrichedTxns = txns.map(txn => {
+      const fromUser = users.find(u => u.id === txn.from_user_id);
+      const toAccount = accounts.find(a => a.id === txn.to_account_id);
+      
+      return {
+        ...txn,
+        from_user_name: fromUser?.full_name || 'Unknown',
+        to_account_number: toAccount?.account_number || 'N/A'
+      };
+    });
+    
+    res.json(enrichedTxns || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -654,7 +669,9 @@ app.post('/api/admin/users/reset-password', async (req, res) => {
       update: { 
         password: hashedPassword,
         totp_enabled: false,
-        totp_secret: null
+        totp_secret: null,
+        recent_change: 'Password reset by admin',
+        last_updated: new Date().toISOString()
       },
       where: { id: userId }
     });
@@ -883,6 +900,48 @@ app.get('/api/mfa/status', requireAuth, async (req, res) => {
       mfa_enabled: user.totp_enabled || false,
       email: user.email
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/user/rotate-api-key - Generate new API key
+app.post('/api/user/rotate-api-key', requireAuth, async (req, res) => {
+  try {
+    // Generate new API key (32 random characters)
+    const newApiKey = crypto.randomBytes(16).toString('hex');
+    
+    await supabaseRest('PATCH', 'users', {
+      update: { api_key: newApiKey },
+      where: { id: req.session.userId }
+    });
+    
+    res.json({ success: true, api_key: newApiKey });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/user/api-key - Get current API key
+app.get('/api/user/api-key', requireAuth, async (req, res) => {
+  try {
+    const users = await supabaseRest('GET', 'users', { where: { id: req.session.userId } });
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    // If no API key exists, generate one
+    if (!user.api_key) {
+      const newApiKey = crypto.randomBytes(16).toString('hex');
+      await supabaseRest('PATCH', 'users', {
+        update: { api_key: newApiKey },
+        where: { id: req.session.userId }
+      });
+      return res.json({ success: true, api_key: newApiKey });
+    }
+    
+    res.json({ success: true, api_key: user.api_key });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
