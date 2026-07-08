@@ -22,7 +22,6 @@
       min-height: 100vh;
     }
 
-    /* SIDEBAR */
     .sidebar {
       width: 250px;
       background: linear-gradient(135deg, #0a2342 0%, #1a5f7a 100%);
@@ -61,7 +60,6 @@
       color: #d4af37;
     }
 
-    /* MAIN CONTENT */
     .main {
       flex: 1;
       display: flex;
@@ -86,12 +84,13 @@
     .header-right {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 10px;
     }
 
     .user-info {
       font-size: 14px;
       opacity: 0.9;
+      margin: 0 15px;
     }
 
     .logout-btn {
@@ -298,19 +297,10 @@
     .page.active {
       display: block;
     }
-
-    code {
-      background: #f5f5f5;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: 'Monaco', 'Courier New', monospace;
-      font-size: 12px;
-    }
   </style>
 </head>
 <body>
   <div class="app">
-    <!-- SIDEBAR -->
     <div class="sidebar">
       <h2>💳 Simple Bank</h2>
       <div class="nav-item active" onclick="switchPage('account')">Account</div>
@@ -321,23 +311,20 @@
       <div class="nav-item" onclick="switchPage('settings')">⚙️ Settings</div>
     </div>
 
-    <!-- MAIN -->
     <div class="main">
-      <!-- HEADER -->
       <div class="header">
         <h1>Dashboard</h1>
         <div class="header-right">
-          <button id="reserveBtn" style="background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 15px;" onclick="toggleReserve()">Reserve</button>
+          <button id="adminBtn" style="display: none; background: #9b59b6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;" onclick="goToAdmin()">🔐 Admin</button>
+          <button id="reserveBtn" style="background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; margin-left: 10px; margin-right: 15px;" onclick="toggleReserve()">Reserve</button>
           <div class="user-info" id="userEmail">Loading...</div>
           <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
       </div>
 
-      <!-- CONTENT -->
       <div class="content">
         <div id="message" class="message"></div>
 
-        <!-- ACCOUNT PAGE -->
         <div id="account" class="page active">
           <div class="card">
             <h2>Your Accounts</h2>
@@ -347,6 +334,10 @@
               <div class="info-row">
                 <span class="info-label">Account Number</span>
                 <span class="info-value" id="accountNumber">-</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Account ID</span>
+                <span class="info-value" style="font-family: monospace; font-size: 11px; word-break: break-all;" id="accountId">-</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Account Type</span>
@@ -361,6 +352,10 @@
             <div class="card-section">
               <div class="section-label">Savings Account</div>
               <div class="info-row">
+                <span class="info-label">Account ID</span>
+                <span class="info-value" style="font-family: monospace; font-size: 11px; word-break: break-all;" id="savingsAccountId">-</span>
+              </div>
+              <div class="info-row">
                 <span class="info-label">Account Type</span>
                 <span class="info-value">Savings</span>
               </div>
@@ -372,19 +367,22 @@
           </div>
         </div>
 
-        <!-- TRANSFER PAGE -->
         <div id="transfer" class="page">
           <div class="card">
             <h2>Transfer Funds</h2>
             <form onsubmit="handleTransfer(event)">
-              <input type="text" placeholder="Recipient Account ID" id="recipientId" required />
+              <input type="text" placeholder="Recipient Account ID (copy from Account tab)" id="recipientId" required />
               <input type="number" placeholder="Amount" id="transferAmount" step="0.01" required />
               <button type="submit">Transfer</button>
             </form>
+            
+            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #eee;">
+              <p style="font-size: 12px; text-transform: uppercase; color: #999; font-weight: 600; margin-bottom: 12px;">Your Accounts</p>
+              <div id="accountsList" style="font-size: 13px; line-height: 1.8;">Loading accounts...</div>
+            </div>
           </div>
         </div>
 
-        <!-- TRANSACTIONS PAGE -->
         <div id="transactions" class="page">
           <div class="card">
             <h2>Recent Transactions</h2>
@@ -392,7 +390,6 @@
           </div>
         </div>
 
-        <!-- SEARCH PAGE -->
         <div id="search" class="page">
           <div class="card">
             <h2>Search Users</h2>
@@ -404,10 +401,9 @@
           </div>
         </div>
 
-        <!-- COMMENTS PAGE -->
         <div id="comments" class="page">
           <div class="card">
-            <h2>Comments</h2>
+            <h2>Community Chat</h2>
             <form onsubmit="handleComment(event)">
               <textarea placeholder="Write a comment..." id="commentText" rows="4"></textarea>
               <button type="submit">Post Comment</button>
@@ -416,9 +412,6 @@
           </div>
         </div>
 
-        <!-- API PAGE (REMOVED - moved to Settings) -->
-
-        <!-- SETTINGS PAGE -->
         <div id="settings" class="page">
           <div class="card">
             <h2>Security Settings</h2>
@@ -435,14 +428,12 @@
                 MFA is currently <strong>disabled</strong>
               </div>
               
-              <!-- Enable MFA Form -->
               <div id="mfaEnableForm">
                 <form onsubmit="handleMFAEnable(event)">
                   <button type="submit">Enable Two-Factor Authentication</button>
                 </form>
               </div>
 
-              <!-- QR Code Display -->
               <div id="mfaQRDisplay" class="hidden">
                 <p style="margin-bottom: 12px;">Scan this QR code with Microsoft Authenticator or Google Authenticator:</p>
                 <div class="qr-container">
@@ -457,7 +448,6 @@
                 </form>
               </div>
 
-              <!-- Disable MFA Form -->
               <div id="mfaDisableForm" class="hidden">
                 <p style="color: #666; font-size: 13px; margin-bottom: 12px;">To disable 2FA, enter your TOTP code:</p>
                 <form onsubmit="handleMFADisable(event)">
@@ -499,6 +489,7 @@
       if (pageName === 'transactions') loadTransactions();
       if (pageName === 'comments') loadComments();
       if (pageName === 'settings') loadMFAStatus();
+      if (pageName === 'transfer') loadAvailableAccounts();
     }
 
     async function loadAccount() {
@@ -506,22 +497,39 @@
         const res = await fetch('/api/user/account');
         const data = await res.json();
         if (res.ok) {
-          // Get all accounts for this user
           const checkingAccount = data.find(a => a.account_type === 'Checking') || data[0];
           const savingsAccount = data.find(a => a.account_type === 'Savings') || data[1];
           
           document.getElementById('accountNumber').textContent = checkingAccount?.account_number || '-';
+          document.getElementById('accountId').textContent = checkingAccount?.id || '-';
           document.getElementById('accountType').textContent = checkingAccount?.account_type || '-';
           document.getElementById('accountBalance').textContent = checkingAccount ? parseFloat(checkingAccount.balance).toFixed(2) : '0.00';
           
-          // Add savings account display
-          const savingsDisplay = document.getElementById('savingsBalance');
-          if (savingsDisplay && savingsAccount) {
-            savingsDisplay.textContent = parseFloat(savingsAccount.balance).toFixed(2);
+          if (savingsAccount) {
+            document.getElementById('savingsAccountId').textContent = savingsAccount.id;
+            document.getElementById('savingsBalance').textContent = parseFloat(savingsAccount.balance).toFixed(2);
           }
         }
       } catch (err) {
         showMessage(err.message, true);
+      }
+    }
+
+    async function loadAvailableAccounts() {
+      try {
+        const res = await fetch('/api/user/account');
+        const data = await res.json();
+        if (res.ok) {
+          const html = data.map(a => `
+            <div style="background: #f9f9f9; padding: 12px; border-radius: 4px; margin-bottom: 8px;">
+              <div><strong>${a.account_type}</strong> - ${a.account_number}</div>
+              <div style="color: #666; font-size: 12px; margin-top: 4px; font-family: monospace;">ID: ${a.id}</div>
+            </div>
+          `).join('');
+          document.getElementById('accountsList').innerHTML = html || 'No accounts found';
+        }
+      } catch (err) {
+        document.getElementById('accountsList').innerHTML = '<p style="color: #e74c3c;">Error loading accounts</p>';
       }
     }
 
@@ -530,26 +538,13 @@
         const res = await fetch('/api/v1/transactions');
         const data = await res.json();
         if (res.ok) {
-          // Filter to show only transactions from current user
           const userTransactions = data.filter(t => t.from_user_id === currentUser.id);
           const html = userTransactions.map(t => `
             <div style="display: grid; grid-template-columns: 1fr 1fr 100px 150px; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 13px;">
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">FROM</div>
-                <div style="font-weight: 600;">${t.from_user_id ? t.from_user_id.substring(0, 8) + '...' : 'N/A'}</div>
-              </div>
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">TO</div>
-                <div style="font-weight: 600;">${t.to_account_id ? t.to_account_id.substring(0, 8) + '...' : 'N/A'}</div>
-              </div>
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">AMOUNT</div>
-                <div style="font-weight: 600; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div>
-              </div>
-              <div>
-                <div style="color: #999; font-size: 11px; text-transform: uppercase;">TIME</div>
-                <div style="font-weight: 600;">${new Date(t.created_at).toLocaleString()}</div>
-              </div>
+              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">FROM</div><div style="font-weight: 600;">${t.from_user_id ? t.from_user_id.substring(0, 8) + '...' : 'N/A'}</div></div>
+              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">TO</div><div style="font-weight: 600;">${t.to_account_id ? t.to_account_id.substring(0, 8) + '...' : 'N/A'}</div></div>
+              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">AMOUNT</div><div style="font-weight: 600; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div></div>
+              <div><div style="color: #999; font-size: 11px; text-transform: uppercase;">TIME</div><div style="font-weight: 600;">${new Date(t.created_at).toLocaleString()}</div></div>
             </div>
           `).join('');
           document.getElementById('transactionsList').innerHTML = html || '<p style="color: #999;">No transactions yet</p>';
@@ -564,13 +559,7 @@
         const res = await fetch('/api/comments');
         const data = await res.json();
         if (res.ok) {
-          const html = data.map(c => `
-            <div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px;">
-              <div><strong>${c.user_id}</strong></div>
-              <div>${c.content}</div>
-              <div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleDateString()}</div>
-            </div>
-          `).join('');
+          const html = data.map(c => `<div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px;"><div><strong>${c.user_id}</strong></div><div>${c.content}</div><div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleDateString()}</div></div>`).join('');
           document.getElementById('commentsList').innerHTML = html || '<p style="color: #999;">No comments yet</p>';
         }
       } catch (err) {
@@ -636,7 +625,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          showMessage('MFA enabled successfully!');
+          showMessage('✓ MFA enabled successfully!');
           setTimeout(() => loadMFAStatus(), 1500);
         } else {
           showMessage(data.error, true);
@@ -657,7 +646,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          showMessage('MFA disabled');
+          showMessage('✓ MFA disabled');
           setTimeout(() => loadMFAStatus(), 1500);
         } else {
           showMessage(data.error, true);
@@ -679,7 +668,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          showMessage('Transfer successful!');
+          showMessage('✓ Transfer successful!');
           document.getElementById('recipientId').value = '';
           document.getElementById('transferAmount').value = '';
           loadAccount();
@@ -717,7 +706,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          showMessage('Comment posted!');
+          showMessage('✓ Comment posted!');
           document.getElementById('commentText').value = '';
           loadComments();
         } else {
@@ -728,45 +717,50 @@
       }
     }
 
-    async function logout() {
-      await fetch('/api/auth/logout');
-      window.location.href = '/';
+    function goToAdmin() {
+      window.location.href = '/admin';
     }
 
     async function toggleReserve() {
       try {
-        const res = await fetch('/api/user/reserve-status');
-        const data = await res.json();
+        const statusRes = await fetch('/api/user/reserve-status');
+        if (!statusRes.ok) {
+          showMessage('Error checking reserve status', true);
+          return;
+        }
+        const statusData = await statusRes.json();
         
-        if (data.isReserved) {
-          // UN-reserve
-          const res2 = await fetch('/api/user/un-reserve', { method: 'POST' });
-          const data2 = await res2.json();
-          if (res2.ok) {
+        if (statusData.isReserved) {
+          const res = await fetch('/api/user/un-reserve', { method: 'POST' });
+          if (res.ok) {
             const btn = document.getElementById('reserveBtn');
             btn.textContent = 'Reserve';
             btn.style.background = '#27ae60';
-            btn.disabled = false;
-            showMessage('Account un-reserved');
+            showMessage('✓ Account un-reserved');
           } else {
-            showMessage(data2.error, true);
+            const errData = await res.json();
+            showMessage('Error: ' + (errData.error || 'Failed'), true);
           }
         } else {
-          // Reserve
-          const res2 = await fetch('/api/user/reserve', { method: 'POST' });
-          const data2 = await res2.json();
-          if (res2.ok) {
+          const res = await fetch('/api/user/reserve', { method: 'POST' });
+          if (res.ok) {
             const btn = document.getElementById('reserveBtn');
             btn.textContent = 'In-use (24h) ⚠️';
             btn.style.background = '#c0392b';
-            showMessage('Account reserved for 24 hours');
+            showMessage('✓ Account reserved for 24 hours');
           } else {
-            showMessage(data2.error, true);
+            const errData = await res.json();
+            showMessage('Error: ' + (errData.error || 'Failed'), true);
           }
         }
       } catch (err) {
-        showMessage(err.message, true);
+        showMessage('Error: ' + err.message, true);
       }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout');
+      window.location.href = '/';
     }
 
     async function init() {
@@ -782,7 +776,11 @@
         document.getElementById('apiKeyDisplay').textContent = localStorage.getItem('apiKey') || 'N/A';
         loadAccount();
         
-        // Check reserve status
+        const adminRes = await fetch('/api/admin/check');
+        if (adminRes.ok) {
+          document.getElementById('adminBtn').style.display = 'block';
+        }
+        
         const resStatus = await fetch('/api/user/reserve-status');
         const statusData = await resStatus.json();
         if (statusData.isReserved) {
