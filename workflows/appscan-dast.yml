@@ -1,0 +1,42 @@
+name: HCL AppScan DAST Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 2 AM daily
+  workflow_dispatch:        # allows manual trigger from Actions tab
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: HCL AppScan DAST Analyzer
+        uses: HCL-TECH-SOFTWARE/appscan-dast-action@v1.0.7
+        with:
+          baseurl: https://cloud.appscan.com
+          asoc_key: ${{ secrets.ASOC_KEY }}
+          asoc_secret: ${{ secrets.ASOC_SECRET }}
+          application_id: ${{ secrets.ASOC_APP_ID }}
+
+          dynamic_scan_type: dast
+          starting_URL: "https://appscan-demo-mfa-production.up.railway.app/"
+
+          login_method: userpass
+          login_user: ${{ secrets.TARGET_LOGIN_USER }}
+          login_password: ${{ secrets.TARGET_LOGIN_PASSWORD }}
+
+          network: public
+          optimization: Fast
+          wait_for_analysis: true
+          wait_for_analysis_timeout_minutes: 120
+          fail_for_noncompliance: false
+
+      - name: Upload AppScan HTML Report
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppScan-DAST-Report
+          path: '**/AppScan*.html'
