@@ -23,7 +23,7 @@ jobs:
           baseurl: https://cloud.appscan.com
           asoc_key: ${{ secrets.ASOC_KEY }}
           asoc_secret: ${{ secrets.ASOC_SECRET }}
-          application_id: ${{ secrets.ASOC_APP_ID }}
+          application_id: ${{ vars.ASOC_APP_ID }}
 
           dynamic_scan_type: dast
           starting_URL: "https://appscan-demo-mfa-production.up.railway.app/"
