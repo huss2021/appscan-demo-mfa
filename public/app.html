@@ -455,72 +455,179 @@
             </div>
 
             <div class="card-section">
-              <div class="section-label">API Testing Tips</div>
-              <p style="font-size: 13px; color: #666; margin-bottom: 16px;">Use these endpoints to test the API. Make sure to include your API key in the Authorization header (if applicable).</p>
+              <div class="section-label">API Documentation & Import</div>
+              <p style="font-size: 13px; color: #666; margin-bottom: 16px;">Download the OpenAPI specification to import into HCL AppScan or other API security scanning tools.</p>
               
+              <button type="button" onclick="downloadOpenAPISpec()" style="background: #8b5cf6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; margin-bottom: 12px;">📥 Download OpenAPI Spec (JSON)</button>
+              
+              <div style="background: #f5f5f5; border-radius: 4px; padding: 12px; font-size: 12px; color: #666; line-height: 1.6;">
+                <p style="margin: 0 0 8px 0;"><strong>How to use with HCL AppScan:</strong></p>
+                <ol style="margin: 0; padding-left: 20px;">
+                  <li>Download the OpenAPI specification file</li>
+                  <li>Open HCL AppScan (AppScan on Cloud or AppScan Enterprise)</li>
+                  <li>Create new scan → Select "Import API Definition"</li>
+                  <li>Choose "OpenAPI 3.0" format</li>
+                  <li>Upload the downloaded JSON file</li>
+                  <li>Configure login credentials (demo-user1@appscan.com / DemoPassword123!)</li>
+                  <li>Configure MFA if testing with 2FA enabled</li>
+                  <li>Run DAST scan</li>
+                </ol>
+              </div>
+              
+              <div style="background: #f0f7ff; border: 1px solid #b3e5fc; padding: 12px; border-radius: 4px; margin-top: 12px; font-size: 12px;">
+                <p style="margin: 0 0 8px 0;"><strong>💡 Known Vulnerabilities Included:</strong></p>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li>SQL Injection (GET /api/search?q=)</li>
+                  <li>IDOR - Insecure Direct Object References (transfers, transactions)</li>
+                  <li>Stored XSS (POST /api/profile/comment)</li>
+                  <li>CSRF (POST /api/transfer)</li>
+                  <li>Broken Authentication (MFA bypass tests)</li>
+                  <li>Privilege Escalation (admin panel access)</li>
+                </ul>
+              </div>
+            </div>
+              <p style="font-size: 13px; color: #666; margin-bottom: 16px;">Use these endpoints to test the API.</p>
+
+              <div style="background: #e3f2fd; border: 1px solid #90caf9; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
+                <div style="font-weight: 600; color: #1565c0; margin-bottom: 8px;">🔑 Getting Started: How to Get Your Session ID</div>
+                <ol style="margin: 0; padding-left: 20px; font-size: 12px; color: #333;">
+                  <li style="margin-bottom: 8px;"><strong>Step 1:</strong> Log in using the login endpoint below</li>
+                  <li style="margin-bottom: 8px;"><strong>Step 2:</strong> Your browser/client automatically stores the session cookie</li>
+                  <li style="margin-bottom: 8px;"><strong>Step 3:</strong> When using curl, save the cookie with <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-c cookies.txt</code> during login</li>
+                  <li style="margin-bottom: 8px;"><strong>Step 4:</strong> Use the saved cookie for all other requests with <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-b cookies.txt</code></li>
+                  <li><strong>Step 5:</strong> If using Postman, enable "Automatically follow redirects" and cookies will be saved in the Environment</li>
+                </ol>
+              </div>
+
               <div style="background: #f5f5f5; border-radius: 4px; padding: 16px; margin-bottom: 16px; font-size: 13px; font-family: monospace;">
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/auth/login</div>
+                  <div style="color: #666; margin-bottom: 8px;">Login with email & password. Returns user info and sets session cookie.</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/auth/login \<br/>
+  -H "Content-Type: application/json" \<br/>
+  -c cookies.txt \<br/>
+  -d '{"email":"demo-user1@appscan.com","password":"DemoPassword123!"}'
+                  </div>
+                  <div style="color: #666; font-size: 12px;"><strong>Note:</strong> If user has MFA enabled, add <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">"totp_code":"123456"</code> to the request</div>
+                </div>
+
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/user/profile</div>
                   <div style="color: #666; margin-bottom: 8px;">Get current user's profile information</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/user/profile \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/user/profile \<br/>
+  -b cookies.txt
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/user/account</div>
                   <div style="color: #666; margin-bottom: 8px;">Get all accounts for current user (checking and savings)</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/user/account \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/user/account \<br/>
+  -b cookies.txt
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/v1/transactions</div>
                   <div style="color: #666; margin-bottom: 8px;">Get all transactions for current user</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/v1/transactions \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/v1/transactions \<br/>
+  -b cookies.txt
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/search?q=EMAIL_OR_NAME</div>
                   <div style="color: #666; margin-bottom: 8px;">Search for users by email or name</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET "https://appscan-demo-mfa-production.up.railway.app/api/search?q=demo-user" \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X GET "https://appscan-demo-mfa-production.up.railway.app/api/search?q=demo-user" \<br/>
+  -b cookies.txt
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/transfer</div>
                   <div style="color: #666; margin-bottom: 8px;">Transfer money between accounts</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/transfer \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID" \<br/>  -H "Content-Type: application/json" \<br/>  -d '{"fromAccountId":"ACCOUNT_ID","toAccountId":"ACCOUNT_ID","amount":100}'</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/transfer \<br/>
+  -H "Content-Type: application/json" \<br/>
+  -b cookies.txt \<br/>
+  -d '{"fromAccountId":"ACCOUNT_ID","toAccountId":"ACCOUNT_ID","amount":100}'
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/comments</div>
                   <div style="color: #666; margin-bottom: 8px;">Get all community chat comments</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/comments \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/comments \<br/>
+  -b cookies.txt
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/profile/comment</div>
                   <div style="color: #666; margin-bottom: 8px;">Post a comment to community chat</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/profile/comment \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID" \<br/>  -H "Content-Type: application/json" \<br/>  -d '{"content":"Your comment here"}'</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/profile/comment \<br/>
+  -H "Content-Type: application/json" \<br/>
+  -b cookies.txt \<br/>
+  -d '{"content":"Your comment here"}'
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/user/reserve</div>
                   <div style="color: #666; margin-bottom: 8px;">Reserve your account for 24 hours (demo mode)</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/user/reserve \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/user/reserve \<br/>
+  -b cookies.txt
+                  </div>
                 </div>
 
                 <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
                   <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/mfa/enable</div>
                   <div style="color: #666; margin-bottom: 8px;">Enable two-factor authentication and get QR code</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/mfa/enable \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID"</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/mfa/enable \<br/>
+  -b cookies.txt
+                  </div>
+                </div>
+
+                <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/mfa/verify</div>
+                  <div style="color: #666; margin-bottom: 8px;">Verify TOTP code to enable 2FA</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; margin-bottom: 8px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/mfa/verify \<br/>
+  -H "Content-Type: application/json" \<br/>
+  -b cookies.txt \<br/>
+  -d '{"totp_code":"123456"}'
+                  </div>
                 </div>
 
                 <div>
-                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">POST /api/mfa/verify</div>
-                  <div style="color: #666; margin-bottom: 8px;">Verify TOTP code to enable 2FA</div>
-                  <div style="background: white; padding: 8px; border-radius: 3px; color: #333; overflow-x: auto;">curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/mfa/verify \<br/>  -H "Cookie: sessionId=YOUR_SESSION_ID" \<br/>  -H "Content-Type: application/json" \<br/>  -d '{"totp_code":"123456"}'</div>
+                  <div style="font-weight: 600; color: #0a2342; margin-bottom: 8px;">GET /api/auth/logout</div>
+                  <div style="color: #666; margin-bottom: 8px;">Logout and destroy session</div>
+                  <div style="background: white; padding: 8px; border-radius: 3px; color: #333; overflow-x: auto; line-height: 1.4;">
+curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/auth/logout \<br/>
+  -b cookies.txt
+                  </div>
                 </div>
               </div>
               
-              <p style="font-size: 12px; color: #999;">💡 <strong>Tip:</strong> All endpoints require an active session. For API testing tools like Postman or curl, ensure cookies are sent with requests or use the appropriate authentication method.</p>
+              <div style="background: #f0f7ff; border: 1px solid #b3e5fc; padding: 12px; border-radius: 4px; font-size: 12px;">
+                <p style="margin: 0 0 8px 0;"><strong>💡 Pro Tips:</strong></p>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li><strong>Curl:</strong> Use <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-c cookies.txt</code> to save cookies on login, <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-b cookies.txt</code> to use them on subsequent requests</li>
+                  <li><strong>Postman:</strong> Set up an Environment variable and use the login request to automatically populate it for other requests</li>
+                  <li><strong>Demo Accounts:</strong> Use demo-user1@appscan.com or demo-user2@appscan.com with password DemoPassword123!</li>
+                  <li><strong>Verbose Curl:</strong> Add <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-v</code> flag to see all headers and cookies</li>
+                  <li><strong>OpenAPI Spec:</strong> Download from Settings or fetch: <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">curl https://appscan-demo-mfa-production.up.railway.app/api/openapi.json</code></li>
+                </ul>
+              </div>
             </div>
               <div id="mfaStatus" class="mfa-status disabled">
                 MFA is currently <strong>disabled</strong>
@@ -781,6 +888,182 @@
       } catch (err) {
         showMessage('Error: ' + err.message, true);
       }
+    }
+
+    function downloadOpenAPISpec() {
+      // OpenAPI specification embedded in the page
+      const openApiSpec = {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Simple Bank API - DAST Demo",
+          "description": "Intentionally vulnerable banking application with MFA/TOTP authentication for DAST security testing. Designed for AppScan demonstrations.",
+          "version": "1.0.0",
+          "contact": {
+            "name": "HCL AppScan Demo",
+            "url": "https://appscan-demo-mfa-production.up.railway.app"
+          }
+        },
+        "servers": [
+          {
+            "url": "https://appscan-demo-mfa-production.up.railway.app",
+            "description": "Production Demo Server"
+          }
+        ],
+        "components": {
+          "securitySchemes": {
+            "cookieAuth": {
+              "type": "apiKey",
+              "in": "cookie",
+              "name": "connect.sid",
+              "description": "Session cookie obtained from /api/auth/login"
+            }
+          }
+        },
+        "paths": {
+          "/api/auth/login": {
+            "post": {
+              "summary": "User Login",
+              "tags": ["Authentication"],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "email": {"type": "string", "example": "demo-user1@appscan.com"},
+                        "password": {"type": "string", "example": "DemoPassword123!"},
+                        "totp_code": {"type": "string", "description": "6-digit code if MFA enabled"}
+                      },
+                      "required": ["email", "password"]
+                    }
+                  }
+                }
+              },
+              "responses": {"200": {"description": "Login successful"}}
+            }
+          },
+          "/api/user/profile": {
+            "get": {
+              "summary": "Get User Profile",
+              "tags": ["User"],
+              "security": [{"cookieAuth": []}],
+              "responses": {"200": {"description": "User profile"}}
+            }
+          },
+          "/api/user/account": {
+            "get": {
+              "summary": "Get User Accounts",
+              "tags": ["User"],
+              "security": [{"cookieAuth": []}],
+              "responses": {"200": {"description": "Array of accounts"}}
+            }
+          },
+          "/api/v1/transactions": {
+            "get": {
+              "summary": "Get Transactions",
+              "tags": ["Transactions"],
+              "security": [{"cookieAuth": []}],
+              "responses": {"200": {"description": "Array of transactions"}}
+            }
+          },
+          "/api/transfer": {
+            "post": {
+              "summary": "Transfer Money",
+              "tags": ["Transactions"],
+              "security": [{"cookieAuth": []}],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "fromAccountId": {"type": "string"},
+                        "toAccountId": {"type": "string"},
+                        "amount": {"type": "number"}
+                      },
+                      "required": ["fromAccountId", "toAccountId", "amount"]
+                    }
+                  }
+                }
+              },
+              "responses": {"200": {"description": "Transfer successful"}}
+            }
+          },
+          "/api/search": {
+            "get": {
+              "summary": "Search Users (SQL Injection Vulnerable)",
+              "tags": ["User"],
+              "security": [{"cookieAuth": []}],
+              "parameters": [{"name": "q", "in": "query", "required": true, "schema": {"type": "string"}}],
+              "responses": {"200": {"description": "Search results"}}
+            }
+          },
+          "/api/comments": {
+            "get": {
+              "summary": "Get Community Chat",
+              "tags": ["Community"],
+              "security": [{"cookieAuth": []}],
+              "responses": {"200": {"description": "Array of comments"}}
+            }
+          },
+          "/api/profile/comment": {
+            "post": {
+              "summary": "Post Comment (Stored XSS Vulnerable)",
+              "tags": ["Community"],
+              "security": [{"cookieAuth": []}],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {"type": "object", "properties": {"content": {"type": "string"}}, "required": ["content"]}
+                  }
+                }
+              },
+              "responses": {"200": {"description": "Comment posted"}}
+            }
+          },
+          "/api/mfa/enable": {
+            "post": {
+              "summary": "Enable MFA",
+              "tags": ["Security"],
+              "security": [{"cookieAuth": []}],
+              "responses": {"200": {"description": "MFA secret generated"}}
+            }
+          },
+          "/api/mfa/verify": {
+            "post": {
+              "summary": "Verify MFA",
+              "tags": ["Security"],
+              "security": [{"cookieAuth": []}],
+              "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"totp_code": {"type": "string"}}, "required": ["totp_code"]}}}},
+              "responses": {"200": {"description": "MFA enabled"}}
+            }
+          }
+        },
+        "tags": [
+          {"name": "Authentication"},
+          {"name": "User"},
+          {"name": "Transactions"},
+          {"name": "Community"},
+          {"name": "Security"}
+        ]
+      };
+
+      // Create blob and download
+      const dataStr = JSON.stringify(openApiSpec, null, 2);
+      const dataBlob = new Blob([dataStr], {type: 'application/json'});
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'simple-bank-openapi-spec.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showMessage('✓ OpenAPI specification downloaded! Import into HCL AppScan.');
     }
 
     async function handleMFAEnable(event) {
