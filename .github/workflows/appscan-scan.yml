@@ -1,8 +1,10 @@
 name: AppScan ASoC DAST Scan
 
 on:
-  # Trigger on deployment
-  deployment:
+  workflow_dispatch:
+  
+  # Trigger on deployment //disabling line 7 temporarily hz 7/8/2026
+  #deployment:
   
   # Or schedule for nightly scans
   schedule:
