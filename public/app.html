@@ -442,9 +442,16 @@
             
             <div class="card-section">
               <div class="section-label">API Access</div>
-              <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Use this key for API calls. Keep it secret!</p>
-              <div class="secret-code" id="apiKeyDisplay">Loading...</div>
-              <button type="button" onclick="rotateApiKey()" style="margin-top: 12px; background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;">🔄 Rotate API Key</button>
+              <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Generate an API key to access the API. This key will only be shown once - store it in a safe place!</p>
+              <div id="apiKeyContainer" style="display: none; margin-bottom: 12px;">
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+                  <p style="font-size: 12px; color: #856404; margin-bottom: 8px;">⚠️ <strong>Store this key in a safe place!</strong></p>
+                  <p style="font-size: 12px; color: #856404;">Once you navigate away from this page, you will NOT be able to retrieve this key again. You will have to generate a new key if you lose it.</p>
+                </div>
+                <div class="secret-code" id="apiKeyDisplay" style="margin-bottom: 12px; user-select: all; cursor: pointer;">Loading...</div>
+                <button type="button" onclick="copyApiKeyToClipboard()" style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;">📋 Copy Key</button>
+              </div>
+              <button type="button" id="generateKeyBtn" onclick="generateNewApiKey()" style="background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;">🔑 Generate Key</button>
             </div>
 
             <div class="card-section">
@@ -582,23 +589,23 @@
             const toAccountShort = t.to_account_number.substring(0, 4);
             
             return `
-              <div style="display: grid; grid-template-columns: 1fr 1fr 100px 150px; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 13px;">
-                <div>
-                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">FROM</div>
-                  <div style="font-weight: 600;">${fromName} (${toAccountShort}...)</div>
+              <div style="padding: 16px; border-bottom: 1px solid #eee; margin-bottom: 12px; background: #f9f9f9; border-radius: 4px;">
+                <div style="display: grid; grid-template-columns: 200px 200px 150px; gap: 24px; margin-bottom: 12px;">
+                  <div>
+                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 6px;">FROM</div>
+                    <div style="font-weight: 600; font-size: 14px;">${fromName}</div>
+                    <div style="color: #666; font-size: 12px; margin-top: 4px;">(${toAccountShort}...)</div>
+                  </div>
+                  <div>
+                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 6px;">TO ACCOUNT</div>
+                    <div style="font-weight: 600; font-size: 14px;">${toAccountShort}...</div>
+                  </div>
+                  <div>
+                    <div style="color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 6px;">AMOUNT</div>
+                    <div style="font-weight: 600; font-size: 16px; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div>
+                  </div>
                 </div>
-                <div>
-                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">TO</div>
-                  <div style="font-weight: 600;">${toAccountShort}...</div>
-                </div>
-                <div>
-                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">AMOUNT</div>
-                  <div style="font-weight: 600; color: #27ae60;">$${parseFloat(t.amount).toFixed(2)}</div>
-                </div>
-                <div>
-                  <div style="color: #999; font-size: 11px; text-transform: uppercase;">TIME</div>
-                  <div style="font-weight: 600;">${new Date(t.created_at).toLocaleString()}</div>
-                </div>
+                <div style="color: #999; font-size: 12px;">${new Date(t.created_at).toLocaleString()}</div>
               </div>
             `;
           }).join('');
@@ -620,7 +627,7 @@
           const html = sortedComments.map(c => `
             <div style="padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #1a5f7a;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div><strong>From: ${c.user_id}</strong></div>
+                <div><strong>From: ${c.user_full_name}</strong></div>
                 <div style="color: #999; font-size: 12px;">${new Date(c.created_at).toLocaleString()}</div>
               </div>
               <div style="color: #333;">${c.content}</div>
@@ -657,16 +664,35 @@
             document.getElementById('mfaDisableForm').classList.add('hidden');
           }
         }
-        
-        // Load API key
-        const apiRes = await fetch('/api/user/api-key');
-        const apiData = await apiRes.json();
-        if (apiRes.ok && apiData.api_key) {
-          document.getElementById('apiKeyDisplay').textContent = apiData.api_key;
-        }
       } catch (err) {
         showMessage(err.message, true);
       }
+    }
+
+    async function generateNewApiKey() {
+      try {
+        const res = await fetch('/api/user/rotate-api-key', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.api_key) {
+          document.getElementById('apiKeyDisplay').textContent = data.api_key;
+          document.getElementById('apiKeyContainer').style.display = 'block';
+          document.getElementById('generateKeyBtn').style.display = 'none';
+          showMessage('✓ New API key generated! Copy it now and store it safely.');
+        } else {
+          showMessage('Failed to generate API key', true);
+        }
+      } catch (err) {
+        showMessage('Error: ' + err.message, true);
+      }
+    }
+
+    function copyApiKeyToClipboard() {
+      const keyText = document.getElementById('apiKeyDisplay').textContent;
+      navigator.clipboard.writeText(keyText).then(() => {
+        showMessage('✓ API key copied to clipboard!');
+      }).catch(() => {
+        showMessage('Failed to copy key', true);
+      });
     }
 
     async function rotateApiKey() {
@@ -907,17 +933,6 @@
         const user = await res.json();
         currentUser = user;
         document.getElementById('userEmail').textContent = user.email;
-        
-        // Load API key from server
-        try {
-          const apiRes = await fetch('/api/user/api-key');
-          const apiData = await apiRes.json();
-          if (apiRes.ok && apiData.api_key) {
-            document.getElementById('apiKeyDisplay').textContent = apiData.api_key;
-          }
-        } catch (err) {
-          document.getElementById('apiKeyDisplay').textContent = 'N/A';
-        }
         loadAccount();
         
         const adminRes = await fetch('/api/admin/check');
