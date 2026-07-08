@@ -710,8 +710,16 @@
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
         const data = await res.json();
         if (res.ok) {
-          const html = data.map(u => `<div style="padding: 8px; border: 1px solid #eee; margin-top: 8px; border-radius: 4px;"><strong>${u.email}</strong><br><small>${u.full_name}</small></div>`).join('');
-          document.getElementById('searchResults').innerHTML = html || '<p style="color: #999; margin-top: 12px;">No results</p>';
+          const html = data.map(u => `
+            <div style="padding: 12px; border: 1px solid #eee; margin-top: 8px; border-radius: 4px; background: #f9f9f9;">
+              <div><strong>${u.email}</strong></div>
+              <div style="color: #666; font-size: 13px; margin-top: 4px;">${u.full_name}</div>
+              <div style="color: #999; font-size: 12px; margin-top: 8px; font-family: monospace;">Account ID: ${u.checking_account_id}</div>
+            </div>
+          `).join('');
+          document.getElementById('searchResults').innerHTML = html || '<p style="color: #999; margin-top: 12px;">No results found</p>';
+        } else {
+          showMessage('Search failed', true);
         }
       } catch (err) {
         showMessage(err.message, true);
@@ -727,13 +735,20 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ comment })
         });
-        const data = await res.json();
-        if (res.ok) {
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = { error: 'Invalid response' };
+        }
+        
+        if (res.ok && (data.success || data.comment)) {
           showMessage('✓ Comment posted!');
           document.getElementById('commentText').value = '';
           loadComments();
         } else {
-          showMessage(data.error, true);
+          showMessage(data.error || 'Failed to post comment', true);
         }
       } catch (err) {
         showMessage(err.message, true);

@@ -96,8 +96,9 @@ let trafficLogs = [];
 // IP tracking middleware
 app.use((req, res, next) => {
   const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  const now = new Date();
   trafficLogs.push({
-    timestamp: new Date(),
+    timestamp: now,
     ip_address: ip,
     method: req.method,
     path: req.path,
@@ -105,7 +106,11 @@ app.use((req, res, next) => {
     user_id: req.session.userId || null,
     user_email: req.session.email || null
   });
-  if (trafficLogs.length > 10000) trafficLogs = trafficLogs.slice(-10000);
+  
+  // Keep only last 30 days of logs (30 * 24 * 60 * 60 * 1000 ms)
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  trafficLogs = trafficLogs.filter(log => log.timestamp > thirtyDaysAgo);
+  
   next();
 });
 
@@ -286,11 +291,39 @@ app.get('/api/search', requireAuth, async (req, res) => {
     const q = req.query.q;
     if (!q) return res.status(400).json({ error: 'Query required' });
 
-    const users = await supabaseRest('GET', 'users', {
-      where: { email: q }
-    });
+    // Get all users and filter by email or name (partial match)
+    const allUsers = await supabaseRest('GET', 'users');
+    const searchLower = q.toLowerCase();
+    
+    const results = allUsers.filter(user => 
+      user.email.toLowerCase().includes(searchLower) || 
+      (user.full_name && user.full_name.toLowerCase().includes(searchLower))
+    );
 
-    res.json(users || []);
+    // For each user, get their checking account ID
+    const usersWithAccounts = await Promise.all(
+      results.map(async (user) => {
+        try {
+          const accounts = await supabaseRest('GET', 'accounts', { where: { user_id: user.id } });
+          const checkingAccount = accounts.find(a => a.account_type === 'Checking');
+          return {
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name || 'N/A',
+            checking_account_id: checkingAccount?.id || 'N/A'
+          };
+        } catch {
+          return {
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name || 'N/A',
+            checking_account_id: 'N/A'
+          };
+        }
+      })
+    );
+
+    res.json(usersWithAccounts || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -336,9 +369,12 @@ app.post('/api/profile/comment', requireAuth, async (req, res) => {
       }
     });
 
-    res.json(result[0]);
+    return res.json({ 
+      success: true, 
+      comment: (result && result[0]) || { content: comment, user_id: req.session.userId } 
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -346,9 +382,9 @@ app.post('/api/profile/comment', requireAuth, async (req, res) => {
 app.get('/api/comments', requireAuth, async (req, res) => {
   try {
     const comments = await supabaseRest('GET', 'comments', {});
-    res.json(comments || []);
+    return res.json(comments || []);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -450,10 +486,18 @@ app.get('/api/admin/users', async (req, res) => {
     const users = await supabaseRest('GET', 'users', {});
     const accounts = await supabaseRest('GET', 'accounts', {});
 
-    const usersWithBalance = users.map(user => ({
-      ...user,
-      balance: accounts.find(a => a.user_id === user.id)?.balance || 0
-    }));
+    const usersWithBalance = users.map(user => {
+      const userAccounts = accounts.filter(a => a.user_id === user.id);
+      const checkingAccount = userAccounts.find(a => a.account_type === 'Checking');
+      const savingsAccount = userAccounts.find(a => a.account_type === 'Savings');
+      
+      return {
+        ...user,
+        balance: userAccounts[0]?.balance || 0,
+        checking_account_id: checkingAccount?.id || 'N/A',
+        savings_account_id: savingsAccount?.id || 'N/A'
+      };
+    });
 
     res.json(usersWithBalance);
   } catch (err) {
@@ -466,7 +510,9 @@ app.get('/api/admin/traffic', (req, res) => {
   if (req.session.email !== ADMIN_EMAIL) {
     return res.status(403).json({ error: 'Admin only' });
   }
-  res.json(trafficLogs.slice(-500));
+  // Return latest logs first (descending order)
+  const logs = trafficLogs.slice().reverse();
+  res.json(logs);
 });
 
 // POST /api/admin/users/create

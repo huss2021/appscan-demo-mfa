@@ -296,6 +296,8 @@
                   <th>Balance</th>
                   <th>MFA</th>
                   <th>Reserved</th>
+                  <th>Checking Account ID</th>
+                  <th>Savings Account ID</th>
                   <th>Registration IP</th>
                   <th>Status</th>
                   <th>Created</th>
@@ -399,6 +401,8 @@
               <td>$${user.balance ? parseFloat(user.balance).toFixed(2) : '0.00'}</td>
               <td><span class="status-badge ${user.totp_enabled ? 'status-active' : 'status-inactive'}">${user.totp_enabled ? '✓ Enabled' : '✗ Disabled'}</span></td>
               <td><span class="status-badge ${user.reserved_until && new Date(user.reserved_until) > new Date() ? 'status-active' : 'status-inactive'}">${user.reserved_until && new Date(user.reserved_until) > new Date() ? '🔴 Yes' : '⚪ No'}</span></td>
+              <td style="font-family: monospace; font-size: 11px; word-break: break-all; max-width: 150px;">${user.checking_account_id || 'N/A'}</td>
+              <td style="font-family: monospace; font-size: 11px; word-break: break-all; max-width: 150px;">${user.savings_account_id || 'N/A'}</td>
               <td>${user.registration_ip || 'N/A'}</td>
               <td><span class="status-badge status-active">Active</span></td>
               <td>${new Date(user.created_at).toLocaleDateString()}</td>
