@@ -337,7 +337,10 @@
               </div>
               <div class="info-row">
                 <span class="info-label">Account ID</span>
-                <span class="info-value" style="font-family: monospace; font-size: 11px; word-break: break-all;" id="accountId">-</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="info-value" style="font-family: monospace; font-size: 11px; word-break: break-all;" id="accountId">-</span>
+                  <button type="button" onclick="copyAccountId('accountId')" style="background: none; border: none; cursor: pointer; padding: 4px; color: #1a5f7a; font-size: 16px;" title="Copy Account ID">📋</button>
+                </div>
               </div>
               <div class="info-row">
                 <span class="info-label">Account Type</span>
@@ -353,7 +356,10 @@
               <div class="section-label">Savings Account</div>
               <div class="info-row">
                 <span class="info-label">Account ID</span>
-                <span class="info-value" style="font-family: monospace; font-size: 11px; word-break: break-all;" id="savingsAccountId">-</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="info-value" style="font-family: monospace; font-size: 11px; word-break: break-all;" id="savingsAccountId">-</span>
+                  <button type="button" onclick="copyAccountId('savingsAccountId')" style="background: none; border: none; cursor: pointer; padding: 4px; color: #1a5f7a; font-size: 16px;" title="Copy Account ID">📋</button>
+                </div>
               </div>
               <div class="info-row">
                 <span class="info-label">Account Type</span>
@@ -466,6 +472,16 @@
   <script>
     let currentUser = null;
     let mfaSecret = null;
+
+    function copyAccountId(elementId) {
+      const element = document.getElementById(elementId);
+      const text = element.textContent.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        showMessage('✓ Account ID copied!');
+      }).catch(() => {
+        showMessage('Failed to copy', true);
+      });
+    }
 
     function showMessage(msg, isError = false) {
       const msgEl = document.getElementById('message');
@@ -666,17 +682,24 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ toAccountId, amount: parseFloat(amount) })
         });
-        const data = await res.json();
-        if (res.ok) {
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = { error: 'Invalid response from server' };
+        }
+        
+        if (res.ok && data.success) {
           showMessage('✓ Transfer successful!');
           document.getElementById('recipientId').value = '';
           document.getElementById('transferAmount').value = '';
-          loadAccount();
+          setTimeout(() => loadAccount(), 1000);
         } else {
-          showMessage(data.error, true);
+          showMessage(data.error || 'Transfer failed', true);
         }
       } catch (err) {
-        showMessage(err.message, true);
+        showMessage('Error: ' + err.message, true);
       }
     }
 
@@ -724,33 +747,37 @@
     async function toggleReserve() {
       try {
         const statusRes = await fetch('/api/user/reserve-status');
-        if (!statusRes.ok) {
-          showMessage('Error checking reserve status', true);
-          return;
-        }
         const statusData = await statusRes.json();
         
         if (statusData.isReserved) {
+          // UN-reserve
           const res = await fetch('/api/user/un-reserve', { method: 'POST' });
-          if (res.ok) {
+          const resData = await res.json().catch(() => ({}));
+          
+          if (res.ok || resData.success) {
             const btn = document.getElementById('reserveBtn');
             btn.textContent = 'Reserve';
             btn.style.background = '#27ae60';
             showMessage('✓ Account un-reserved');
           } else {
-            const errData = await res.json();
-            showMessage('Error: ' + (errData.error || 'Failed'), true);
+            showMessage('Error un-reserving account', true);
+            // Still try to update in case it succeeded server-side
+            setTimeout(() => location.reload(), 2000);
           }
         } else {
+          // Reserve
           const res = await fetch('/api/user/reserve', { method: 'POST' });
-          if (res.ok) {
+          const resData = await res.json().catch(() => ({}));
+          
+          if (res.ok || resData.success) {
             const btn = document.getElementById('reserveBtn');
             btn.textContent = 'In-use (24h) ⚠️';
             btn.style.background = '#c0392b';
             showMessage('✓ Account reserved for 24 hours');
           } else {
-            const errData = await res.json();
-            showMessage('Error: ' + (errData.error || 'Failed'), true);
+            showMessage('Error reserving account', true);
+            // Still try to update in case it succeeded server-side
+            setTimeout(() => location.reload(), 2000);
           }
         }
       } catch (err) {

@@ -53,7 +53,19 @@ async function supabaseRest(method, table, options = {}) {
   
   try {
     const res = await fetch(url, options_fetch);
-    const json = await res.json();
+    
+    // Handle 204 No Content (PATCH/DELETE success)
+    if (res.status === 204) {
+      return [];
+    }
+    
+    const text = await res.text();
+    let json;
+    try {
+      json = text ? JSON.parse(text) : [];
+    } catch (e) {
+      json = [];
+    }
     
     if (!res.ok) {
       throw new Error(json.message || json.error_description || 'Database error');
@@ -377,10 +389,10 @@ app.post('/api/transfer', requireAuth, async (req, res) => {
       }
     });
 
-    res.json({ success: true, transaction: txn[0] });
+    return res.json({ success: true, transaction: (txn && txn[0]) || { amount, status: 'completed' } });
   } catch (err) {
     console.error('Transfer error:', err);
-    res.status(500).json({ error: 'Transfer failed: ' + err.message });
+    return res.status(500).json({ error: 'Transfer failed: ' + err.message });
   }
 });
 
