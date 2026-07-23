@@ -318,20 +318,38 @@
       <div id="trafficTab" class="tab-content hidden">
         <div class="card">
           <h2>Last 30 Days Traffic</h2>
+          
+          <!-- IP Address Toggle -->
+          <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
+            <label style="font-size: 14px; color: #333; font-weight: 500; margin: 0;">
+              Show IP Addresses
+            </label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input 
+                type="checkbox" 
+                id="showIPToggle" 
+                checked
+                onchange="toggleIPAddresses(this.checked)"
+                style="width: 20px; height: 20px; cursor: pointer;"
+              />
+              <span id="ipToggleStatus" style="font-size: 12px; color: #666;">Enabled</span>
+            </div>
+          </div>
+
           <div class="table-container">
             <table>
               <thead>
                 <tr>
                   <th>Timestamp</th>
                   <th>User</th>
-                  <th>IP Address</th>
+                  <th id="ipColumn">IP Address</th>
                   <th>Method</th>
                   <th>Path</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody id="trafficTableBody">
-                <tr><td colspan="5" style="text-align: center; color: #999;">Loading...</td></tr>
+                <tr><td colspan="6" style="text-align: center; color: #999;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -426,6 +444,24 @@
 
     let trafficCurrentPage = 1;
     const TRAFFIC_PER_PAGE = 50;
+    let showIPAddresses = true; // Toggle state for IP address column
+
+    function toggleIPAddresses(show) {
+      showIPAddresses = show;
+      // Save toggle state to localStorage for persistence
+      localStorage.setItem('showIPAddresses', JSON.stringify(show));
+      
+      document.getElementById('ipToggleStatus').textContent = show ? 'Enabled' : 'Disabled';
+      document.getElementById('ipColumn').style.display = show ? '' : 'none';
+      
+      // Hide/show IP cells in all rows
+      const ipCells = document.querySelectorAll('td[data-ip]');
+      ipCells.forEach(cell => {
+        cell.style.display = show ? '' : 'none';
+      });
+      
+      renderTrafficPage();
+    }
 
     async function loadTraffic() {
       try {
@@ -435,6 +471,15 @@
           // Store all traffic data for pagination
           window.allTraffic = data;
           trafficCurrentPage = 1;
+          
+          // Restore toggle state from localStorage
+          const savedShowIP = localStorage.getItem('showIPAddresses');
+          if (savedShowIP !== null) {
+            showIPAddresses = JSON.parse(savedShowIP);
+            document.getElementById('showIPToggle').checked = showIPAddresses;
+            document.getElementById('ipToggleStatus').textContent = showIPAddresses ? 'Enabled' : 'Disabled';
+            document.getElementById('ipColumn').style.display = showIPAddresses ? '' : 'none';
+          }
           
           renderTrafficPage();
           renderTrafficPagination(data.length);
@@ -458,7 +503,7 @@
         <tr>
           <td>${new Date(log.timestamp).toLocaleString()}</td>
           <td>${log.user_email || 'Anonymous'}</td>
-          <td>${log.ip_address}</td>
+          <td data-ip style="display: ${showIPAddresses ? '' : 'none'};">${log.ip_address}</td>
           <td>${log.method}</td>
           <td>${log.path}</td>
           <td>${log.status_code}</td>

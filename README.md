@@ -85,15 +85,12 @@ vercel --prod
 
 ## 📖 Test Accounts (for DAST Scanning)
 
-These accounts are pre-created in the database for scanning:
+Pre-configured test accounts are available in the database for DAST scanning. Contact the Simple Bank administrator for current test credentials. Test accounts include:
+- Multiple user accounts with standard and elevated privileges
+- Pre-enrolled MFA (TOTP) for authenticated scanning scenarios
+- Separate API testing credentials for bearer token authentication
 
-| Email | Password | TOTP Secret |
-|-------|----------|-------------|
-| `demo-user1@appscan.com` | `DemoPassword123!` | `JBSWY3DPEBLW64TMMQ======` |
-| `demo-user2@appscan.com` | `DemoPassword123!` | `KVKFKRCPNZQUYMLXOBZWKY3UPEA======` |
-
-### Password Hash Note
-The passwords in the test accounts are hashed with bcrypt. The plaintext passwords above work with bcrypt verification. These are **test accounts only** and should never be used in production.
+**Note:** Test account credentials are managed separately and rotated regularly for security. All accounts use bcrypt-hashed passwords.
 
 ---
 
@@ -231,9 +228,9 @@ POST /api/transfer
 3. **Create a Macro** (if using macro-based auth):
    ```
    Step 1: POST /api/auth/login
-   - Credentials: demo-user1@appscan.com / DemoPassword123!
+   - Credentials: [Test account email] / [Test account password]
    
-   Step 2: GET /api/test/totp/JBSWY3DPEBLW64TMMQ======
+   Step 2: GET /api/test/totp/{TOTP_SECRET}
    - Extract TOTP code from response
    
    Step 3: POST /api/auth/login (with TOTP code)
@@ -261,7 +258,7 @@ POST /api/transfer
    - Token: Get from test account login response
    ```
    POST /api/auth/login
-   {"email": "demo-user1@appscan.com", "password": "DemoPassword123!", "totp_code": "123456"}
+   {"email": "[test-account-email]", "password": "[test-account-password]", "totp_code": "123456"}
    # Response: {"apiKey": "sk_xxxxx"}
    ```
    - Add to all API requests:
@@ -310,10 +307,10 @@ jobs:
           scan_name: "Nightly DAST Scan"
           target_url: "https://appscan-demo-mfa.vercel.app"
           
-          # Use test account credentials
-          login_email: "demo-user1@appscan.com"
-          login_password: "DemoPassword123!"
-          totp_secret: "JBSWY3DPEBLW64TMMQ======"
+          # Use test account credentials (set as secrets in GitHub)
+          login_email: ${{ secrets.APPSCAN_TEST_EMAIL }}
+          login_password: ${{ secrets.APPSCAN_TEST_PASSWORD }}
+          totp_secret: ${{ secrets.APPSCAN_TEST_TOTP_SECRET }}
           
           # Optional: Set scan policies
           policy_name: "Financial Industry"
@@ -336,17 +333,17 @@ For AppScan macros that need to auto-generate TOTP codes:
 GET /api/test/totp/{TOTP_SECRET}
 
 Example:
-GET /api/test/totp/JBSWY3DPEBLW64TMMQ======
+GET /api/test/totp/{your-test-account-totp-secret}
 
 Response:
 {
-  "secret": "JBSWY3DPEBLW64TMMQ======",
+  "secret": "{your-test-account-totp-secret}",
   "token": "123456",
   "valid_for_seconds": 30
 }
 ```
 
-Use the `token` value in your login request.
+Use the `token` value in your login request. Obtain test account TOTP secrets from the Simple Bank administrator.
 
 ---
 

@@ -49,23 +49,16 @@ const DEMO_HARDCODED_CREDS = {
 
 ---
 
-## Real Credentials (WORKING)
+## Real Credentials (Database-Verified)
 
 ### Test Accounts (Pre-seeded in Supabase Database)
 
-```
-Email:    demo-user1@appscan.com
-Password: DemoPassword123!
-Status:   ✅ WORKS for login
+Test accounts are pre-configured in the database for DAST scanning scenarios. Contact the Simple Bank administrator for current test account credentials including:
+- Primary test accounts (with standard privileges)
+- Admin account (with administrative capabilities)
+- All accounts use bcrypt-hashed passwords
 
-Email:    demo-user2@appscan.com
-Password: DemoPassword123!
-Status:   ✅ WORKS for login
-
-Email:    admin@appscan.com
-Password: (Set via ADMIN_PASSWORD env var or Supabase)
-Status:   ✅ WORKS for login
-```
+**Note:** Hardcoded credentials listed at the top of this document do NOT authenticate. Only database-verified users can login.
 
 ---
 
@@ -140,9 +133,11 @@ For production:
 appscan_client scan \
   --openapi-spec=simple-bank-openapi.json \
   --server-url=https://appscan-demo-mfa-production.up.railway.app \
-  --login-email=demo-user1@appscan.com \
-  --login-password=DemoPassword123!
+  --login-email=[test-account-email] \
+  --login-password=[test-account-password]
 ```
+
+**Note:** Use actual test account credentials obtained from Simple Bank administrator.
 
 ### Expected Findings
 
