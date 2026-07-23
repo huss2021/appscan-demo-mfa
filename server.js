@@ -11,6 +11,20 @@ const cron = require('node-cron');
 
 const app = express();
 
+// ⚠️  INTENTIONAL DEMO VULNERABILITIES - FOR DAST SCANNING ONLY
+// These hardcoded credentials do NOT work for authentication
+// Real authentication uses Supabase database verification
+// DAST scanners will find these, but they won't grant access
+const DEMO_HARDCODED_CREDS = {
+  // These are FAKE and will NOT authenticate
+  // Real auth happens via database password verification below
+  username: 'testuser@example.com',
+  password: 'TestPassword123!',
+  apikey: 'sk-test-abcdefghijklmnopqrstuvwxyz123456789',
+  database_user: 'postgres',
+  database_password: 'postgres_demo_123'
+};
+
 // Supabase REST API config
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rczasgalkjungxegwtbt.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -185,10 +199,14 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // POST /api/auth/login
+// ⚠️  Note: Hardcoded demo credentials exist in code but DO NOT WORK
+// Authentication uses bcrypt verification against database passwords only
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, totp_code } = req.body;
 
+    // Only authenticates against database users (real passwords)
+    // Hardcoded credentials at top of file are intentional DEMO vulnerabilities
     const users = await supabaseRest('GET', 'users', { where: { email } });
     
     if (!users || users.length === 0) {
@@ -1025,6 +1043,20 @@ app.get('/api/user/api-key', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ⚠️  INTENTIONAL DEMO HARDCODED CREDENTIALS FOR DAST SCANNING
+// These are FAKE test credentials that DAST scanners should find
+// They do NOT work for actual authentication - database verification is used instead
+// These demonstrate the vulnerability without compromising security
+const DEMO_TEST_CREDENTIALS = {
+  backup_admin: 'admin@backup.com:BackupAdminPass123!',
+  legacy_user: 'olduser@test.com:OldPassword456!',
+  staging_db: 'staging_user:staging_password_789',
+  api_tokens: [
+    'sk-proj-test123456789abcdefghijk',
+    'sk-test-xyzabc123456789'
+  ]
+};
 
 // Start server
 const PORT = process.env.PORT || 3001;
