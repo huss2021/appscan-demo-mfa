@@ -132,10 +132,10 @@ Vercel will:
 
 1. Click your live URL
 2. You should see the login page
-3. **Test Account Email:** `demo-user1@appscan.com`
-4. **Password:** `<removed>`
-5. **TOTP Code:** Use `/api/test/totp/<removed>======` endpoint to get code
-   - Or manually: generate 6-digit code using TOTP app with secret `<removed>======`
+3. **Test Account Email:** Contact Simple Bank administrator for test credentials
+4. **Password:** (Provided by administrator)
+5. **TOTP Code:** If MFA is enabled, use the `/api/test/totp/{TOTP_SECRET}` endpoint to generate codes
+   - Requires your test account's TOTP secret (provided by administrator)
 6. Log in successfully = ✅ App is deployed!
 
 ---
@@ -249,9 +249,9 @@ secrets.txt
 ### Problem: TOTP code not working
 
 **Solution:**
-- Get fresh code from `/api/test/totp/<removed>======`
+- Get fresh code from `/api/test/totp/JBSWY3DPEBLW64TMMQ======`
 - TOTP codes are valid for 30 seconds—if expired, get a new one
-- Ensure exact secret: `<removed>======` (match case)
+- Ensure exact secret: `JBSWY3DPEBLW64TMMQ======` (match case)
 
 ### Problem: App doesn't load at all
 

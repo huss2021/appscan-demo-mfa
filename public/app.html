@@ -469,7 +469,7 @@
                   <li>Create new scan → Select "Import API Definition"</li>
                   <li>Choose "OpenAPI 3.0" format</li>
                   <li>Upload the downloaded JSON file</li>
-                  <li>Configure login credentials (demo-user1@appscan.com / DemoPassword123!)</li>
+                  <li>Configure login credentials (use test account provided by Simple Bank administrator)</li>
                   <li>Configure MFA if testing with 2FA enabled</li>
                   <li>Run DAST scan</li>
                 </ol>
@@ -508,7 +508,7 @@
 curl -X POST https://appscan-demo-mfa-production.up.railway.app/api/auth/login \<br/>
   -H "Content-Type: application/json" \<br/>
   -c cookies.txt \<br/>
-  -d '{"email":"demo-user1@appscan.com","password":"DemoPassword123!"}'
+  -d '{"email":"[test-account-email]","password":"[test-account-password]"}'
                   </div>
                   <div style="color: #666; font-size: 12px;"><strong>Note:</strong> If user has MFA enabled, add <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">"totp_code":"123456"</code> to the request</div>
                 </div>
@@ -624,7 +624,7 @@ curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/auth/logout \
                 <ul style="margin: 0; padding-left: 20px;">
                   <li><strong>Curl:</strong> Use <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-c cookies.txt</code> to save cookies on login, <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-b cookies.txt</code> to use them on subsequent requests</li>
                   <li><strong>Postman:</strong> Set up an Environment variable and use the login request to automatically populate it for other requests</li>
-                  <li><strong>Demo Accounts:</strong> Use demo-user1@appscan.com or demo-user2@appscan.com with password DemoPassword123!</li>
+                  <li><strong>Test Accounts:</strong> Contact Simple Bank administrator for test account credentials</li>
                   <li><strong>Verbose Curl:</strong> Add <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">-v</code> flag to see all headers and cookies</li>
                   <li><strong>OpenAPI Spec:</strong> Download from Settings or fetch: <code style="background: #fff; padding: 2px 4px; border-radius: 2px;">curl https://appscan-demo-mfa-production.up.railway.app/api/openapi.json</code></li>
                 </ul>
@@ -1003,8 +1003,8 @@ curl -X GET https://appscan-demo-mfa-production.up.railway.app/api/auth/logout \
                     "schema": {
                       "type": "object",
                       "properties": {
-                        "email": {"type": "string", "example": "demo-user1@appscan.com"},
-                        "password": {"type": "string", "example": "DemoPassword123!"},
+                        "email": {"type": "string", "example": "user@example.com"},
+                        "password": {"type": "string", "example": "password123"},
                         "totp_code": {"type": "string", "description": "6-digit code if MFA enabled"}
                       },
                       "required": ["email", "password"]
