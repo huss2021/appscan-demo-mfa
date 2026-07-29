@@ -296,19 +296,19 @@
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Balance</th>
-                  <th>MFA</th>
-                  <th>Reserved</th>
-                  <th>Checking Account ID</th>
-                  <th>Savings Account ID</th>
-                  <th>Recent Change</th>
-                  <th>Last Updated</th>
-                  <th>Registration IP</th>
-                  <th>Status</th>
-                  <th>Created</th>
+                  <th onclick="sortUsers('full_name')" style="cursor: pointer; user-select: none;">Name</th>
+                  <th onclick="sortUsers('email')" style="cursor: pointer; user-select: none;">Email</th>
+                  <th onclick="sortUsers('role')" style="cursor: pointer; user-select: none;">Role</th>
+                  <th onclick="sortUsers('balance')" style="cursor: pointer; user-select: none;">Balance</th>
+                  <th onclick="sortUsers('totp_enabled')" style="cursor: pointer; user-select: none;">MFA</th>
+                  <th onclick="sortUsers('reserved_until')" style="cursor: pointer; user-select: none;">Reserved</th>
+                  <th onclick="sortUsers('checking_account_id')" style="cursor: pointer; user-select: none;">Checking Account ID</th>
+                  <th onclick="sortUsers('savings_account_id')" style="cursor: pointer; user-select: none;">Savings Account ID</th>
+                  <th onclick="sortUsers('recent_change')" style="cursor: pointer; user-select: none;">Recent Change</th>
+                  <th onclick="sortUsers('last_updated')" style="cursor: pointer; user-select: none;">Last Updated</th>
+                  <th id="registrationIPHeader" onclick="sortUsers('registration_ip')" style="cursor: pointer; user-select: none;">Registration IP</th>
+                  <th onclick="sortUsers('status')" style="cursor: pointer; user-select: none;">Status</th>
+                  <th onclick="sortUsers('created_at')" style="cursor: pointer; user-select: none;">Created</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -420,40 +420,111 @@
       }
     }
 
+    let usersSortColumn = null;
+    let usersSortAscending = true;
+    let usersData = [];
+
+    function renderUsersTable(data) {
+      const html = data.map(user => {
+        // Determine role display
+        const role = user.role || 'customer';
+        const roleDisplay = role === 'admin' ? '👑 Admin' : role === 'admin_lite' ? '⭐ Admin Lite' : '👤 Customer';
+        const roleBadgeClass = role === 'admin' ? 'status-active' : role === 'admin_lite' ? 'status-warning' : 'status-inactive';
+        
+        // Check if admin_lite user is viewing an admin user
+        const isAdminUser = role === 'admin';
+        const canModify = !(window.adminRole === 'admin_lite' && isAdminUser);
+        
+        const resetBtnStyle = canModify 
+          ? "background: #3498db; color: white; margin-right: 4px; cursor: pointer;" 
+          : "background: #bdc3c7; color: #7f8c8d; margin-right: 4px; cursor: not-allowed; opacity: 0.6;";
+        
+        const deleteBtnStyle = canModify
+          ? "cursor: pointer;"
+          : "background: #bdc3c7; color: #7f8c8d; cursor: not-allowed; opacity: 0.6;";
+        
+        return `
+        <tr>
+          <td>${user.full_name || 'N/A'}</td>
+          <td>${user.email}</td>
+          <td><span class="status-badge ${roleBadgeClass}">${roleDisplay}</span></td>
+          <td>$${user.balance ? parseFloat(user.balance).toFixed(2) : '0.00'}</td>
+          <td><span class="status-badge ${user.totp_enabled ? 'status-active' : 'status-inactive'}">${user.totp_enabled ? '✓ Enabled' : '✗ Disabled'}</span></td>
+          <td><span class="status-badge ${user.reserved_until && new Date(user.reserved_until) > new Date() ? 'status-active' : 'status-inactive'}">${user.reserved_until && new Date(user.reserved_until) > new Date() ? '🔴 Yes' : '⚪ No'}</span></td>
+          <td style="font-family: monospace; font-size: 11px; word-break: break-all; max-width: 150px;">${user.checking_account_id || 'N/A'}</td>
+          <td style="font-family: monospace; font-size: 11px; word-break: break-all; max-width: 150px;">${user.savings_account_id || 'N/A'}</td>
+          <td style="font-size: 12px; max-width: 200px;">${user.recent_change || '-'}</td>
+          <td style="font-size: 12px;">${user.last_updated ? new Date(user.last_updated).toLocaleString() : '-'}</td>
+          <td class="registrationIPCell">${user.registration_ip || 'N/A'}</td>
+          <td><span class="status-badge status-active">Active</span></td>
+          <td>${new Date(user.created_at).toLocaleDateString()}</td>
+          <td>
+            <button class="action-btn" style="${resetBtnStyle}" onclick="${canModify ? `resetUserPassword('${user.id}', '${user.email}')` : 'return false;'}" ${!canModify ? 'disabled' : ''}>Reset PW</button>
+            <button class="action-btn delete-btn" style="${deleteBtnStyle}" onclick="${canModify ? `deleteUser('${user.id}', '${user.email}')` : 'return false;'}" ${!canModify ? 'disabled' : ''}>Delete</button>
+          </td>
+        </tr>
+      `;
+      }).join('');
+      document.getElementById('usersTableBody').innerHTML = html;
+      
+      // Hide Registration IP cells for admin_lite users
+      if (window.adminRole === 'admin_lite') {
+        const registrationIPCells = document.querySelectorAll('td.registrationIPCell');
+        registrationIPCells.forEach(cell => {
+          cell.style.display = 'none';
+        });
+      }
+    }
+
+    function sortUsers(column) {
+      // Toggle sort direction if clicking same column
+      if (usersSortColumn === column) {
+        usersSortAscending = !usersSortAscending;
+      } else {
+        usersSortColumn = column;
+        usersSortAscending = true;
+      }
+      
+      // Sort the data
+      const sorted = [...usersData].sort((a, b) => {
+        let aVal = a[column];
+        let bVal = b[column];
+        
+        // Handle null/undefined
+        if (aVal == null) aVal = '';
+        if (bVal == null) bVal = '';
+        
+        // Convert to comparable types
+        if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = bVal.toLowerCase();
+        } else if (typeof aVal === 'boolean') {
+          aVal = aVal ? 1 : 0;
+          bVal = bVal ? 1 : 0;
+        } else if (typeof aVal === 'number') {
+          // Already numbers
+        } else if (aVal instanceof Date || typeof aVal === 'string' && !isNaN(Date.parse(aVal))) {
+          aVal = new Date(aVal).getTime();
+          bVal = new Date(bVal).getTime();
+        }
+        
+        // Compare
+        if (aVal < bVal) return usersSortAscending ? -1 : 1;
+        if (aVal > bVal) return usersSortAscending ? 1 : -1;
+        return 0;
+      });
+      
+      // Re-render with sorted data
+      renderUsersTable(sorted);
+    }
+
     async function loadUsers() {
       try {
         const res = await fetch('/api/admin/users');
         const data = await res.json();
         if (res.ok) {
-          const html = data.map(user => {
-            // Determine role display
-            const role = user.role || 'customer';
-            const roleDisplay = role === 'admin' ? '👑 Admin' : role === 'admin_lite' ? '⭐ Admin Lite' : '👤 Customer';
-            const roleBadgeClass = role === 'admin' ? 'status-active' : role === 'admin_lite' ? 'status-warning' : 'status-inactive';
-            
-            return `
-            <tr>
-              <td>${user.full_name || 'N/A'}</td>
-              <td>${user.email}</td>
-              <td><span class="status-badge ${roleBadgeClass}">${roleDisplay}</span></td>
-              <td>$${user.balance ? parseFloat(user.balance).toFixed(2) : '0.00'}</td>
-              <td><span class="status-badge ${user.totp_enabled ? 'status-active' : 'status-inactive'}">${user.totp_enabled ? '✓ Enabled' : '✗ Disabled'}</span></td>
-              <td><span class="status-badge ${user.reserved_until && new Date(user.reserved_until) > new Date() ? 'status-active' : 'status-inactive'}">${user.reserved_until && new Date(user.reserved_until) > new Date() ? '🔴 Yes' : '⚪ No'}</span></td>
-              <td style="font-family: monospace; font-size: 11px; word-break: break-all; max-width: 150px;">${user.checking_account_id || 'N/A'}</td>
-              <td style="font-family: monospace; font-size: 11px; word-break: break-all; max-width: 150px;">${user.savings_account_id || 'N/A'}</td>
-              <td style="font-size: 12px; max-width: 200px;">${user.recent_change || '-'}</td>
-              <td style="font-size: 12px;">${user.last_updated ? new Date(user.last_updated).toLocaleString() : '-'}</td>
-              <td>${user.registration_ip || 'N/A'}</td>
-              <td><span class="status-badge status-active">Active</span></td>
-              <td>${new Date(user.created_at).toLocaleDateString()}</td>
-              <td>
-                <button class="action-btn" style="background: #3498db; color: white; margin-right: 4px;" onclick="resetUserPassword('${user.id}', '${user.email}')">Reset PW</button>
-                <button class="action-btn delete-btn" onclick="deleteUser('${user.id}', '${user.email}')">Delete</button>
-              </td>
-            </tr>
-          `;
-          }).join('');
-          document.getElementById('usersTableBody').innerHTML = html;
+          usersData = data;
+          renderUsersTable(data);
         }
       } catch (err) {
         showMessage(err.message, true);
@@ -701,7 +772,7 @@
           
           // Admin_lite restrictions
           if (window.adminRole === 'admin_lite') {
-            // Hide IP toggle and column
+            // Hide IP toggle and column in traffic logs
             const toggleContainer = document.getElementById('ipToggleContainer');
             if (toggleContainer) {
               toggleContainer.style.display = 'none';
@@ -715,6 +786,12 @@
             ipCells.forEach(cell => {
               cell.style.display = 'none';
             });
+            
+            // Hide Registration IP column in users table
+            const registrationIPHeader = document.getElementById('registrationIPHeader');
+            if (registrationIPHeader) {
+              registrationIPHeader.style.display = 'none';
+            }
             
             // Hide full reset button for admin_lite
             const fullResetButton = document.getElementById('fullResetButton');
