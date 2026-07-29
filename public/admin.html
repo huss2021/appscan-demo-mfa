@@ -245,6 +245,11 @@
       color: #721c24;
     }
 
+    .status-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
     .hidden {
       display: none;
     }
@@ -293,6 +298,7 @@
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
+                  <th>Role</th>
                   <th>Balance</th>
                   <th>MFA</th>
                   <th>Reserved</th>
@@ -320,7 +326,7 @@
           <h2>Last 30 Days Traffic</h2>
           
           <!-- IP Address Toggle -->
-          <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
+          <div id="ipToggleContainer" style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
             <label style="font-size: 14px; color: #333; font-weight: 500; margin: 0;">
               Show IP Addresses
             </label>
@@ -372,12 +378,16 @@
             <button onclick="resetData('transactions')" style="background: #3498db; color: white; padding: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
               🗑️ Clear Transactions<br><small style="font-size: 11px; opacity: 0.9;">(Keep balances)</small>
             </button>
-            <button onclick="resetData('full')" style="background: #e74c3c; color: white; padding: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+            <button id="fullResetButton" onclick="resetData('full')" style="background: #e74c3c; color: white; padding: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
               🗑️ Full Reset<br><small style="font-size: 11px; opacity: 0.9;">(Both above)</small>
             </button>
           </div>
 
           <div id="resetMessage" class="message" style="margin-top: 20px;"></div>
+          
+          <div id="adminLiteWarning" style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 4px; margin-top: 16px; display: none; font-size: 13px;">
+            ⚠️ <strong>Admin Lite Restriction:</strong> You can only clear comments or transactions individually. Full reset is restricted to full admin users.
+          </div>
         </div>
       </div>
     </div>
@@ -415,10 +425,17 @@
         const res = await fetch('/api/admin/users');
         const data = await res.json();
         if (res.ok) {
-          const html = data.map(user => `
+          const html = data.map(user => {
+            // Determine role display
+            const role = user.role || 'customer';
+            const roleDisplay = role === 'admin' ? '👑 Admin' : role === 'admin_lite' ? '⭐ Admin Lite' : '👤 Customer';
+            const roleBadgeClass = role === 'admin' ? 'status-active' : role === 'admin_lite' ? 'status-warning' : 'status-inactive';
+            
+            return `
             <tr>
               <td>${user.full_name || 'N/A'}</td>
               <td>${user.email}</td>
+              <td><span class="status-badge ${roleBadgeClass}">${roleDisplay}</span></td>
               <td>$${user.balance ? parseFloat(user.balance).toFixed(2) : '0.00'}</td>
               <td><span class="status-badge ${user.totp_enabled ? 'status-active' : 'status-inactive'}">${user.totp_enabled ? '✓ Enabled' : '✗ Disabled'}</span></td>
               <td><span class="status-badge ${user.reserved_until && new Date(user.reserved_until) > new Date() ? 'status-active' : 'status-inactive'}">${user.reserved_until && new Date(user.reserved_until) > new Date() ? '🔴 Yes' : '⚪ No'}</span></td>
@@ -434,7 +451,8 @@
                 <button class="action-btn delete-btn" onclick="deleteUser('${user.id}', '${user.email}')">Delete</button>
               </td>
             </tr>
-          `).join('');
+          `;
+          }).join('');
           document.getElementById('usersTableBody').innerHTML = html;
         }
       } catch (err) {
@@ -677,6 +695,40 @@
         if (!res.ok) {
           window.location.href = '/';
         } else {
+          const data = await res.json();
+          window.adminRole = data.role;
+          window.canSeeIP = data.canSeeIP;
+          
+          // Admin_lite restrictions
+          if (window.adminRole === 'admin_lite') {
+            // Hide IP toggle and column
+            const toggleContainer = document.getElementById('ipToggleContainer');
+            if (toggleContainer) {
+              toggleContainer.style.display = 'none';
+            }
+            showIPAddresses = false;
+            const ipColumn = document.getElementById('ipColumn');
+            if (ipColumn) {
+              ipColumn.style.display = 'none';
+            }
+            const ipCells = document.querySelectorAll('td[data-ip]');
+            ipCells.forEach(cell => {
+              cell.style.display = 'none';
+            });
+            
+            // Hide full reset button for admin_lite
+            const fullResetButton = document.getElementById('fullResetButton');
+            if (fullResetButton) {
+              fullResetButton.style.display = 'none';
+            }
+            
+            // Show admin_lite warning
+            const warning = document.getElementById('adminLiteWarning');
+            if (warning) {
+              warning.style.display = 'block';
+            }
+          }
+          
           loadUsers();
         }
       } catch (err) {

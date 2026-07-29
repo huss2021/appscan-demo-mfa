@@ -588,39 +588,78 @@ app.get('/api/v1/transactions', requireAuth, async (req, res) => {
 // ADMIN ROUTES
 // ============================================
 
-app.get('/api/admin/check', (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'Not authenticated' });
+app.get('/api/admin/check', async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const isAdminUser = await isAdmin(req.session.email);
+    if (!isAdminUser) {
+      return res.status(403).json({ error: 'Not admin' });
+    }
+    
+    const canSeeIPAddresses = await canSeeIP(req.session.email);
+    const users = await supabaseRest('GET', 'users', { where: { email: req.session.email } });
+    const role = users && users.length > 0 ? (users[0].role || 'customer') : 'customer';
+    
+    res.json({ 
+      success: true,
+      role,
+      canSeeIP: canSeeIPAddresses
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  
-  if (req.session.email === ADMIN_EMAIL) {
-    return res.json({ success: true });
-  }
-  
-  res.status(403).json({ error: 'Not admin' });
 });
+
+// Helper: Check if user is admin (admin or admin_lite)
+async function isAdmin(email) {
+  if (!email) return false;
+  const users = await supabaseRest('GET', 'users', { where: { email } });
+  if (!users || users.length === 0) return false;
+  const user = users[0];
+  return user.role === 'admin' || user.role === 'admin_lite';
+}
+
+// Helper: Check if user can see IP addresses (only full admin)
+async function canSeeIP(email) {
+  if (!email) return false;
+  const users = await supabaseRest('GET', 'users', { where: { email } });
+  if (!users || users.length === 0) return false;
+  return users[0].role === 'admin';
+}
 
 // GET /api/admin/users
 app.get('/api/admin/users', async (req, res) => {
   try {
-    if (req.session.email !== ADMIN_EMAIL) {
+    if (!req.session.email || !(await isAdmin(req.session.email))) {
       return res.status(403).json({ error: 'Admin only' });
     }
 
     const users = await supabaseRest('GET', 'users', {});
     const accounts = await supabaseRest('GET', 'accounts', {});
+    const canShowIP = await canSeeIP(req.session.email);
 
     const usersWithBalance = users.map(user => {
       const userAccounts = accounts.filter(a => a.user_id === user.id);
       const checkingAccount = userAccounts.find(a => a.account_type === 'Checking');
       const savingsAccount = userAccounts.find(a => a.account_type === 'Savings');
       
-      return {
+      const userData = {
         ...user,
         balance: userAccounts[0]?.balance || 0,
         checking_account_id: checkingAccount?.id || 'N/A',
-        savings_account_id: savingsAccount?.id || 'N/A'
+        savings_account_id: savingsAccount?.id || 'N/A',
+        role: user.role || 'customer'
       };
+      
+      // Hide registration_ip from admin_lite users
+      if (!canShowIP) {
+        userData.registration_ip = '***hidden***';
+      }
+      
+      return userData;
     });
 
     res.json(usersWithBalance);
@@ -630,19 +669,35 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 // GET /api/admin/traffic
-app.get('/api/admin/traffic', (req, res) => {
-  if (req.session.email !== ADMIN_EMAIL) {
-    return res.status(403).json({ error: 'Admin only' });
+app.get('/api/admin/traffic', async (req, res) => {
+  try {
+    if (!req.session.email || !(await isAdmin(req.session.email))) {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    const showIP = await canSeeIP(req.session.email);
+    
+    // Return latest logs first (descending order)
+    let logs = trafficLogs.slice().reverse();
+    
+    // If admin_lite, filter out IP addresses
+    if (!showIP) {
+      logs = logs.map(log => ({
+        ...log,
+        ip_address: '***hidden***'
+      }));
+    }
+    
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  // Return latest logs first (descending order)
-  const logs = trafficLogs.slice().reverse();
-  res.json(logs);
 });
 
 // POST /api/admin/users/create
 app.post('/api/admin/users/create', async (req, res) => {
   try {
-    if (req.session.email !== ADMIN_EMAIL) {
+    if (!req.session.email || !(await isAdmin(req.session.email))) {
       return res.status(403).json({ error: 'Admin only' });
     }
 
@@ -691,8 +746,22 @@ app.post('/api/admin/users/create', async (req, res) => {
 // DELETE /api/admin/users/:userId
 app.delete('/api/admin/users/:userId', async (req, res) => {
   try {
-    if (req.session.email !== ADMIN_EMAIL) {
+    if (!req.session.email || !(await isAdmin(req.session.email))) {
       return res.status(403).json({ error: 'Admin only' });
+    }
+    
+    // Admin_lite CANNOT delete admin or admin_lite users
+    const currentUserRole = (await supabaseRest('GET', 'users', { where: { email: req.session.email } }))[0]?.role;
+    
+    if (currentUserRole === 'admin_lite') {
+      // Check target user's role
+      const targetUser = await supabaseRest('GET', 'users', { where: { id: req.params.userId } });
+      if (targetUser && targetUser.length > 0) {
+        const targetRole = targetUser[0].role;
+        if (targetRole === 'admin' || targetRole === 'admin_lite') {
+          return res.status(403).json({ error: 'Admin lite cannot delete admin or admin lite users' });
+        }
+      }
     }
 
     const userId = req.params.userId;
@@ -750,7 +819,7 @@ app.delete('/api/admin/users/:userId', async (req, res) => {
 // POST /api/admin/users/reset-password - Reset user password
 app.post('/api/admin/users/reset-password', async (req, res) => {
   try {
-    if (req.session.email !== ADMIN_EMAIL) {
+    if (!req.session.email || !(await isAdmin(req.session.email))) {
       return res.status(403).json({ error: 'Admin only' });
     }
 
@@ -758,6 +827,19 @@ app.post('/api/admin/users/reset-password', async (req, res) => {
 
     if (!userId || !newPassword) {
       return res.status(400).json({ error: 'User ID and password required' });
+    }
+    
+    // Admin_lite CANNOT reset passwords for admin or admin_lite users
+    const currentUserRole = (await supabaseRest('GET', 'users', { where: { email: req.session.email } }))[0]?.role;
+    
+    if (currentUserRole === 'admin_lite') {
+      const targetUser = await supabaseRest('GET', 'users', { where: { id: userId } });
+      if (targetUser && targetUser.length > 0) {
+        const targetRole = targetUser[0].role;
+        if (targetRole === 'admin' || targetRole === 'admin_lite') {
+          return res.status(403).json({ error: 'Admin lite cannot reset passwords for admin or admin lite users' });
+        }
+      }
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -782,11 +864,18 @@ app.post('/api/admin/users/reset-password', async (req, res) => {
 // POST /api/admin/reset - Reset app state
 app.post('/api/admin/reset', async (req, res) => {
   try {
-    if (req.session.email !== ADMIN_EMAIL) {
+    if (!req.session.email || !(await isAdmin(req.session.email))) {
       return res.status(403).json({ error: 'Admin only' });
     }
 
     const { type } = req.body;
+    
+    // Admin_lite CANNOT do FULL reset
+    const currentUserRole = (await supabaseRest('GET', 'users', { where: { email: req.session.email } }))[0]?.role;
+    
+    if (currentUserRole === 'admin_lite' && type === 'full') {
+      return res.status(403).json({ error: 'Admin lite cannot perform full reset. Only individual comment or transaction clearing is allowed.' });
+    }
 
     if (type === 'comments') {
       await supabaseRest('DELETE', 'comments', {});
