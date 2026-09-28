@@ -1,14 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-async function createAdmin() {
-  const password = 'AdminPassword123!';
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const adminId = crypto.randomUUID();
-
-  console.log('\n╔════════════════════════════════════════════════════════════════╗');
-  console.log('║                    ADMIN SETUP - COPY SQL BELOW                ║');
-  console.log('╚════════════════════════════════════════════════════════════════╝\n');
   
   console.log('Hashed Password:', hashedPassword);
   console.log('Admin ID:', adminId);
