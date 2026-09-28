@@ -1163,5 +1163,26 @@ app.listen(PORT, () => {
     }
   });
 
+  // Keep Supabase project alive (prevent auto-pause on free tier)
+  cron.schedule('0 9 * * 0', async () => {
+    console.log('[KEEP-ALIVE] Pinging Supabase to prevent inactivity pause...');
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/users?limit=1`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      if (response.ok) {
+        console.log('[KEEP-ALIVE] ✓ Supabase keep-alive successful');
+      } else {
+        console.warn('[KEEP-ALIVE] Supabase responded with status:', response.status);
+      }
+    } catch (err) {
+      console.error('[KEEP-ALIVE] Failed:', err.message);
+    }
+  });
+
   console.log('✓ Nightly cleanup scheduled for 00:00 PST (08:00 UTC)');
+  console.log('✓ Supabase keep-alive scheduled for Sundays at 09:00 UTC');
 });
